@@ -225,16 +225,16 @@ export default function Tagger() {
       />
 
       <div className="flex-1 overflow-hidden flex flex-col gap-1.5 py-1">
+        <LineSelector
+          lines={settings.lines}
+          selected={currentMapping.line}
+          onSelect={line => updateMapping({ line })}
+        />
         <RosterGrid
           roster={settings.roster}
           callupLabel={settings.callupLabel}
           selected={currentMapping.player}
           onSelect={name => updateMapping({ player: name })}
-        />
-        <LineSelector
-          lines={settings.lines}
-          selected={currentMapping.line}
-          onSelect={line => updateMapping({ line })}
         />
         <TagGrid
           tags={settings.tags}
