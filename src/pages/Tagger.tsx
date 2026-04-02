@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, fetchMappings, saveMappings } from '../lib/api'
-import { DEFAULT_SETTINGS, generateGameId, buildFilename } from '../lib/defaults'
+import { DEFAULT_SETTINGS } from '../lib/defaults'
 import type { Settings, GameData, ClipMapping } from '../lib/types'
 import GameSelector from '../components/GameSelector'
 import VideoPlayer from '../components/VideoPlayer'
