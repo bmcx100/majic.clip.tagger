@@ -1,0 +1,78 @@
+import { useState } from 'react'
+import type { GameData } from '../lib/types'
+import { todayPrefix, generateGameId } from '../lib/defaults'
+
+interface Props {
+  games: GameData[]
+  currentGameId: string | null
+  onSelectGame: (game: GameData) => void
+  onNewGame: (game: GameData) => void
+}
+
+export default function GameSelector({ games, currentGameId, onSelectGame, onNewGame }: Props) {
+  const [creating, setCreating] = useState(false)
+  const [description, setDescription] = useState(todayPrefix())
+
+  function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    const desc = description.trim()
+    if (!desc) return
+    const game: GameData = {
+      id: generateGameId(desc),
+      description: desc,
+      created: new Date().toISOString(),
+      processed: false,
+      mappings: {},
+    }
+    onNewGame(game)
+    setCreating(false)
+    setDescription(todayPrefix())
+  }
+
+  if (creating) {
+    return (
+      <form onSubmit={handleCreate} className="flex gap-2 px-4 py-2">
+        <input
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          autoFocus
+          className="flex-1 px-3 py-2 rounded-lg border text-base"
+          style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
+          placeholder="Apr 02 - vs Thunder"
+        />
+        <button type="submit" className="px-4 py-2 rounded-lg text-white font-medium" style={{ background: 'var(--color-amber-600)' }}>
+          Go
+        </button>
+        <button type="button" onClick={() => setCreating(false)} className="px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+          Cancel
+        </button>
+      </form>
+    )
+  }
+
+  return (
+    <div className="flex gap-2 px-4 py-2">
+      <select
+        value={currentGameId || ''}
+        onChange={e => {
+          const game = games.find(g => g.id === e.target.value)
+          if (game) onSelectGame(game)
+        }}
+        className="flex-1 px-3 py-2 rounded-lg border text-base"
+        style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
+      >
+        <option value="" disabled>Select a game...</option>
+        {games.map(g => (
+          <option key={g.id} value={g.id}>{g.description}</option>
+        ))}
+      </select>
+      <button
+        onClick={() => setCreating(true)}
+        className="px-4 py-2 rounded-lg text-white font-medium whitespace-nowrap"
+        style={{ background: 'var(--color-amber-600)' }}
+      >
+        New Game
+      </button>
+    </div>
+  )
+}

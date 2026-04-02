@@ -1,0 +1,179 @@
+// ==== CONFIGURATION ====
+var SOURCE_FOLDER_ID = "1OKbt3ThRACnSCW2jWxzfZcOQ4wHh1lxH";
+var LOG_SHEET_ID = "1xaKOA5QPDInchMhvCK2BNkLAVPfyzpHm46LaFSQUtV0";
+var LOG_FOLDER_ID = "1SrW4XWRdlsha690dZCZTc1w6tBCbmIoX";
+
+// ==== WEB APP ====
+function doGet() {
+  var results = renameClips();
+  var html = buildResultsPage(results);
+  return HtmlService.createHtmlOutput(html)
+    .setTitle("Hockey Clip Renamer");
+}
+
+function buildResultsPage(results) {
+  if (results.length === 0) {
+    return "<html><body style='font-family:sans-serif;padding:24px;'>"
+      + "<h2>No JSON files found</h2>"
+      + "<p>Upload a mapping JSON to the uploads folder and try again.</p>"
+      + "</body></html>";
+  }
+
+  var rows = "";
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var color = r.renamed === r.total ? "#22c55e" : "#f59e0b";
+    rows += "<tr>"
+      + "<td style='padding:8px;'>" + r.game + "</td>"
+      + "<td style='padding:8px;'><span style='color:" + color + ";font-weight:bold;'>" + r.renamed + " of " + r.total + "</span></td>"
+      + "</tr>";
+  }
+
+  return "<html><body style='font-family:sans-serif;padding:24px;'>"
+    + "<h2>Done!</h2>"
+    + "<table style='border-collapse:collapse;'>"
+    + "<tr><th style='padding:8px;text-align:left;'>Game</th><th style='padding:8px;text-align:left;'>Files</th></tr>"
+    + rows
+    + "</table>"
+    + "<p style='margin-top:16px;color:#888;'>Tap to run again anytime.</p>"
+    + "</body></html>";
+}
+
+// ==== MAIN ====
+function renameClips() {
+  var sourceFolder = DriveApp.getFolderById(SOURCE_FOLDER_ID);
+
+  var mappingFiles = [];
+  var allFiles = sourceFolder.getFiles();
+  while (allFiles.hasNext()) {
+    var f = allFiles.next();
+    if (f.getName().endsWith(".json")) {
+      mappingFiles.push(f);
+    }
+  }
+
+  if (mappingFiles.length === 0) {
+    Logger.log("ERROR: No mapping JSON files found in folder.");
+    return [];
+  }
+
+  Logger.log("Found " + mappingFiles.length + " mapping file(s).");
+
+  var results = [];
+  for (var i = 0; i < mappingFiles.length; i++) {
+    results.push(processMapping(mappingFiles[i], sourceFolder));
+  }
+  return results;
+}
+
+function processMapping(mappingFile, sourceFolder) {
+  var game = JSON.parse(mappingFile.getBlob().getDataAsString());
+  var description = game.description;
+  var mappings = game.mappings;
+  var filenames = Object.keys(mappings).sort();
+
+  var gameFolder = getOrCreateSubfolder(sourceFolder, description);
+
+  Logger.log("Game: " + description);
+  Logger.log("Files: " + filenames.length);
+  Logger.log("--------------------------------------------------");
+
+  var renamed = 0;
+  var missing = 0;
+
+  for (var i = 0; i < filenames.length; i++) {
+    var originalName = filenames[i];
+    var file = findFile(sourceFolder, originalName);
+    if (!file) {
+      Logger.log("  MISSING: " + originalName);
+      missing++;
+      continue;
+    }
+
+    var ext = getExtension(originalName);
+    var newName = buildFilename(mappings[originalName], originalName, ext);
+
+    file.setName(newName);
+    file.moveTo(gameFolder);
+    Logger.log("  " + originalName + " -> " + newName);
+    renamed++;
+  }
+
+  var total = filenames.length;
+  var now = new Date();
+  var complete = renamed === total ? "Yes" : "No";
+  var sheet = SpreadsheetApp.openById(LOG_SHEET_ID).getActiveSheet();
+  sheet.appendRow([
+    Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd"),
+    Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss"),
+    mappingFile.getName(),
+    complete,
+    renamed,
+    total
+  ]);
+  Logger.log("  Logged to sheet");
+
+  var parents = sourceFolder.getParents();
+  if (parents.hasNext()) {
+    var marysFolder = parents.next();
+    gameFolder.moveTo(marysFolder);
+    Logger.log("  Moved folder to: " + marysFolder.getName() + "/" + description + "/");
+  }
+
+  Logger.log("Done: " + renamed + " renamed, " + missing + " missing");
+
+  // Last step: copy clip-tag-mappings.json from source folder to logs, renamed
+  var logsFolder = DriveApp.getFolderById(LOG_FOLDER_ID);
+  var jsonInSource = sourceFolder.getFilesByName("clip-tag-mappings.json");
+  if (jsonInSource.hasNext()) {
+    var originalJson = jsonInSource.next();
+    var newJsonName = description.replace(/\u2014/g, "-") + "-clip-tag-mappings.json";
+    originalJson.makeCopy(newJsonName, logsFolder);
+    originalJson.setTrashed(true);
+    Logger.log("  Copied to logs as " + newJsonName);
+  }
+
+  return { game: description, renamed: renamed, total: total };
+}
+
+function buildFilename(mapping, originalName, ext) {
+  var imgMatch = originalName.match(/(IMG_\d+)/);
+  var imgId = imgMatch ? imgMatch[1] : originalName.replace(/\.[^.]+$/, "");
+
+  var parts = [];
+
+  var line = mapping.line;
+  var player = mapping.player;
+  var tag = mapping.tag;
+  var custom = mapping.custom;
+
+  if (line) parts.push(line + " Line");
+  if (player) parts.push(player);
+  if (tag) {
+    parts.push(tag);
+  } else if (!line && !player) {
+    parts.push("Clip");
+  }
+  if (custom) parts.push(custom);
+
+  if (parts.length === 0) parts.push("Clip");
+
+  parts.push(imgId);
+  return parts.join(" ") + ext;
+}
+
+function findFile(folder, name) {
+  var files = folder.getFilesByName(name);
+  return files.hasNext() ? files.next() : null;
+}
+
+function getOrCreateSubfolder(parent, name) {
+  var folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(name);
+}
+
+function getExtension(filename) {
+  var dot = filename.lastIndexOf(".");
+  return dot >= 0 ? filename.substring(dot) : "";
+}

@@ -1,0 +1,15 @@
+{
+  "id": "apr-02-vs-thunder",
+  "description": "Apr 02 — vs Thunder",
+  "created": "2026-04-02T18:00:00Z",
+  "processed": false,
+  "mappings": {
+    "Copy of IMG_5628.MOV": { "player": "Izzy", "line": null, "tag": "Goal", "custom": null, "seq": 1 },
+    "Copy of IMG_5630.MOV": { "player": null, "line": "Red", "tag": "Save", "custom": null, "seq": 2 },
+    "Copy of IMG_5639.MOV": { "player": "Haddy", "line": "Gold", "tag": "Great Play", "custom": null, "seq": 3 },
+    "Copy of IMG_5640.MOV": { "player": null, "line": null, "tag": null, "custom": null, "seq": 4 },
+    "Copy of IMG_5641.MOV": { "player": null, "line": "White", "tag": "Nice Pass", "custom": null, "seq": 5 },
+    "Copy of IMG_5644.MOV": { "player": "Ava", "line": null, "tag": "So Close", "custom": null, "seq": 6 },
+    "Copy of IMG_5646.MOV": { "player": "Monica", "line": "Red", "tag": "Penalty", "custom": null, "seq": 7 }
+  }
+}
