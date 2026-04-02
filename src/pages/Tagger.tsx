@@ -205,13 +205,6 @@ export default function Tagger() {
 
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
-      <GameSelector
-        games={games}
-        currentGameId={game.id}
-        onSelectGame={setGame}
-        onNewGame={handleNewGame}
-      />
-
       <VideoPlayer src={videoUrl} />
 
       <TitlePreview
@@ -223,7 +216,7 @@ export default function Tagger() {
         originalFilename={currentFilename}
       />
 
-      <div className="flex-1 overflow-hidden flex flex-col gap-1.5 py-1">
+      <div className="flex-1 overflow-hidden flex flex-col gap-3 py-1">
         <LineSelector
           lines={settings.lines}
           selected={currentMapping.line}

@@ -59,3 +59,8 @@ button:active, [role="button"]:active {
 button, a, [role="button"] {
   min-height: 44px;
 }
+
+/* Hide scrollbars on scroll rows */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}

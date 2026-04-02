@@ -64,7 +64,6 @@ export default function GameSelector({ games, currentGameId, onSelectGame, onNew
         <span className="text-xs text-zinc-400 uppercase tracking-wide">or</span>
         <div className="flex-1 h-px" style={{ background: 'var(--color-surface-border)' }} />
       </div>
-      <p className="text-sm text-zinc-500 font-medium">Resume Game</p>
       <select
         value={currentGameId || ''}
         onChange={e => {
