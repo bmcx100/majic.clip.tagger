@@ -187,7 +187,7 @@ export default function Tagger() {
             </svg>
           </a>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+        <div className="flex flex-col items-center gap-4 px-6 pt-8">
           <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
             Select Videos
             <input
