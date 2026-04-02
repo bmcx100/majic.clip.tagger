@@ -8,12 +8,13 @@ export const DEFAULT_SETTINGS: Settings = {
     'Mia', 'Monica', 'Sophie', 'Holmes', 'Tessa T',
   ],
   lines: ['White', 'Red', 'Gold'],
-  tags: ['Goal', 'Save', 'Nice Try', 'So Close', 'Great Play', 'Nice Pass', 'Penalty'],
+  adjectives: ['Nice', 'Great', 'Awesome', 'Super'],
+  tags: ['Goal', 'Save', 'Try', 'Close', 'Play', 'Pass', 'Penalty'],
   callupLabel: 'Our Awesome Callup',
 }
 
 export function buildFilename(
-  mapping: { player: string | null; line: string | null; tag: string | null; custom: string | null },
+  mapping: { player: string | null; line: string | null; adjective: string | null; tag: string | null; custom: string | null },
   originalFilename: string
 ): string {
   const imgMatch = originalFilename.match(/(IMG_\d+)/)
@@ -24,8 +25,9 @@ export function buildFilename(
 
   if (mapping.line) parts.push(`${mapping.line} Line`)
   if (mapping.player) parts.push(mapping.player)
-  if (mapping.tag) {
-    parts.push(mapping.tag)
+  const tagParts = [mapping.adjective, mapping.tag].filter(Boolean).join(' ')
+  if (tagParts) {
+    parts.push(tagParts)
   } else if (!mapping.line && !mapping.player) {
     parts.push('Clip')
   }

@@ -103,6 +103,7 @@ export default function SettingsPage() {
 
       <EditableList label="Roster" items={settings.roster} onChange={roster => setSettings({ ...settings, roster })} />
       <EditableList label="Lines" items={settings.lines} onChange={lines => setSettings({ ...settings, lines })} />
+      <EditableList label="Adjectives" items={settings.adjectives} onChange={adjectives => setSettings({ ...settings, adjectives })} />
       <EditableList label="Tags" items={settings.tags} onChange={tags => setSettings({ ...settings, tags })} />
 
       <div className="space-y-2">

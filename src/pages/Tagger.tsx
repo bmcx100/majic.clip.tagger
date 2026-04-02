@@ -24,7 +24,7 @@ export default function Tagger() {
   const currentFile = files[clipIndex] || null
   const currentFilename = currentFile?.name || ''
   const currentMapping: ClipMapping = game?.mappings[currentFilename] || {
-    player: null, line: null, tag: null, custom: null,
+    player: null, line: null, adjective: null, tag: null, custom: null,
   }
 
   const videoUrl = useMemo(() => {
@@ -87,7 +87,7 @@ export default function Tagger() {
       const mappings = { ...game.mappings }
       for (const f of selected) {
         if (!mappings[f.name]) {
-          mappings[f.name] = { player: null, line: null, tag: null, custom: null }
+          mappings[f.name] = { player: null, line: null, adjective: null, tag: null, custom: null }
         }
       }
       setGame({ ...game, mappings })
@@ -219,6 +219,7 @@ export default function Tagger() {
       <TitlePreview
         player={currentMapping.player}
         line={currentMapping.line}
+        adjective={currentMapping.adjective}
         tag={currentMapping.tag}
         custom={currentMapping.custom}
         originalFilename={currentFilename}
@@ -237,9 +238,12 @@ export default function Tagger() {
           onSelect={name => updateMapping({ player: name })}
         />
         <TagGrid
+          adjectives={settings.adjectives}
           tags={settings.tags}
-          selected={currentMapping.tag}
-          onSelect={tag => updateMapping({ tag })}
+          selectedAdjective={currentMapping.adjective}
+          selectedTag={currentMapping.tag}
+          onSelectAdjective={adjective => updateMapping({ adjective })}
+          onSelectTag={tag => updateMapping({ tag })}
         />
         <VoiceInput
           value={currentMapping.custom || ''}

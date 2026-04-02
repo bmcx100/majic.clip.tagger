@@ -1,6 +1,7 @@
 export interface ClipMapping {
   player: string | null
   line: string | null
+  adjective: string | null
   tag: string | null
   custom: string | null
 }
@@ -17,6 +18,7 @@ export interface Settings {
   teamName: string
   roster: string[]
   lines: string[]
+  adjectives: string[]
   tags: string[]
   callupLabel: string
 }

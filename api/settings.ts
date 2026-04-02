@@ -14,7 +14,8 @@ const DEFAULT_SETTINGS = {
     'Mia', 'Monica', 'Sophie', 'Holmes', 'Tessa T',
   ],
   lines: ['White', 'Red', 'Gold'],
-  tags: ['Goal', 'Save', 'Nice Try', 'So Close', 'Great Play', 'Nice Pass', 'Penalty'],
+  adjectives: ['Nice', 'Great', 'Awesome', 'Super'],
+  tags: ['Goal', 'Save', 'Try', 'Close', 'Play', 'Pass', 'Penalty'],
   callupLabel: 'Our Awesome Callup',
 }
 
