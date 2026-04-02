@@ -51,14 +51,27 @@ export default function GameSelector({ games, currentGameId, onSelectGame, onNew
   }
 
   return (
-    <div className="flex gap-2 px-4 py-2">
+    <div className="flex flex-col gap-3 px-4 py-2">
+      <button
+        onClick={() => setCreating(true)}
+        className="w-full py-3 rounded-lg text-white font-medium"
+        style={{ background: 'var(--color-amber-600)' }}
+      >
+        New Game
+      </button>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px" style={{ background: 'var(--color-surface-border)' }} />
+        <span className="text-xs text-zinc-400 uppercase tracking-wide">or</span>
+        <div className="flex-1 h-px" style={{ background: 'var(--color-surface-border)' }} />
+      </div>
+      <p className="text-sm text-zinc-500 font-medium">Resume Game</p>
       <select
         value={currentGameId || ''}
         onChange={e => {
           const game = games.find(g => g.id === e.target.value)
           if (game) onSelectGame(game)
         }}
-        className="flex-1 px-3 py-2 rounded-lg border text-base"
+        className="w-full px-3 py-3 rounded-lg border text-base"
         style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
       >
         <option value="" disabled>Select a game...</option>
@@ -66,13 +79,6 @@ export default function GameSelector({ games, currentGameId, onSelectGame, onNew
           <option key={g.id} value={g.id}>{g.description}</option>
         ))}
       </select>
-      <button
-        onClick={() => setCreating(true)}
-        className="px-4 py-2 rounded-lg text-white font-medium whitespace-nowrap"
-        style={{ background: 'var(--color-amber-600)' }}
-      >
-        New Game
-      </button>
     </div>
   )
 }
