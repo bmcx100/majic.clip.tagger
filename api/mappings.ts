@@ -36,5 +36,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ ok: true })
   }
 
+  if (req.method === 'DELETE') {
+    const id = req.query.id as string
+    if (!id) return res.status(400).json({ error: 'Missing game id' })
+
+    await redis.del(`game:${id}`)
+
+    const index: string[] = (await redis.get('games:index')) || []
+    const updated = index.filter(i => i !== id)
+    await redis.set('games:index', updated)
+
+    return res.status(200).json({ ok: true })
+  }
+
   return res.status(405).end()
 }

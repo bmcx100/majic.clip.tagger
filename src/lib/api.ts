@@ -36,3 +36,11 @@ export async function saveMappings(password: string, game: GameData): Promise<vo
   })
   if (!res.ok) throw new Error('Failed to save mappings')
 }
+
+export async function deleteGame(password: string, id: string): Promise<void> {
+  const res = await fetch(`/api/mappings?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: headers(password),
+  })
+  if (!res.ok) throw new Error('Failed to delete game')
+}
