@@ -28,9 +28,9 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-dvh px-4" style={{ background: 'var(--color-surface-base)' }}>
+    <div className="flex items-center justify-center min-h-dvh px-4" style={{ background: 'var(--color-surface-base)', color: '#27272A' }}>
       <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">
-        <h1 className="font-display text-2xl font-bold text-center">Wildcats Clip Tagger</h1>
+        <h1 className="font-display text-2xl font-bold text-center" style={{ color: '#27272A' }}>Wildcats Clip Tagger</h1>
         <input
           type="password"
           value={password}
@@ -41,6 +41,7 @@ export default function Login() {
           style={{
             background: 'var(--color-surface-card)',
             borderColor: error ? 'var(--color-error)' : 'var(--color-surface-border)',
+            color: '#27272A',
           }}
         />
         {error && <p className="text-sm" style={{ color: 'var(--color-error)' }}>Wrong password</p>}

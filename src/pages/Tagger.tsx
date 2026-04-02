@@ -158,12 +158,17 @@ export default function Tagger() {
           <h1 className="font-display text-xl font-bold">Clip Tagger</h1>
           <a href="/settings" className="text-sm font-medium" style={{ color: 'var(--color-amber-600)' }}>Settings</a>
         </div>
-        <GameSelector
-          games={games}
-          currentGameId={null}
-          onSelectGame={setGame}
-          onNewGame={handleNewGame}
-        />
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6">
+          <p className="text-center text-zinc-500 text-sm leading-relaxed">
+            Tap <strong>New Game</strong> to start tagging clips for a game.
+          </p>
+          <GameSelector
+            games={games}
+            currentGameId={null}
+            onSelectGame={setGame}
+            onNewGame={handleNewGame}
+          />
+        </div>
       </div>
     )
   }
@@ -179,8 +184,10 @@ export default function Tagger() {
             onNewGame={handleNewGame}
           />
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
-          <p className="text-zinc-400 text-sm">Select video clips to start tagging</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+          <p className="text-center text-zinc-500 text-sm leading-relaxed">
+            Select the video clips from your camera roll that you want to tag for this game.
+          </p>
           <label className="px-6 py-3 rounded-lg font-medium text-white cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
             Select Videos
             <input
