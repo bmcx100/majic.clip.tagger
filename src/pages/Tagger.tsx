@@ -193,22 +193,6 @@ export default function Tagger() {
     setDone(true)
   }
 
-  function downloadJson() {
-    if (!game) return
-    const json = JSON.stringify(game, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'clip-tag-mappings.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  function shareJson() {
-    downloadJson()
-  }
-
   if (extracting) {
     return (
       <div className="flex flex-col items-center justify-center min-h-dvh gap-3">
@@ -271,18 +255,11 @@ export default function Tagger() {
         </p>
         <h1 className="font-display text-2xl font-bold">All Done!</h1>
         <button
-          onClick={shareJson}
+          onClick={() => { setDone(false) }}
           className="w-full py-3 rounded-lg border font-medium"
           style={{ borderColor: 'var(--color-surface-border)' }}
         >
-          Share clip-tag-mappings.json
-        </button>
-        <button
-          onClick={() => { setFiles([]); setClipIndex(0); setDone(false) }}
-          className="w-full py-3 rounded-lg border font-medium"
-          style={{ borderColor: 'var(--color-surface-border)' }}
-        >
-          Add/Redo Clips
+          Back
         </button>
         <button
           onClick={() => {
