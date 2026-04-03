@@ -11,7 +11,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'roster', label: 'Roster' },
   { key: 'lines', label: 'Lines' },
   { key: 'adjectives', label: 'Adj' },
-  { key: 'tags', label: 'Tags' },
+  { key: 'tags', label: 'Events' },
   { key: 'callup', label: 'Callup' },
 ]
 
@@ -177,9 +177,11 @@ function GamesTab({ password }: { password: string }) {
     setEditingId(game.id)
     setEditDesc(game.description)
     const names: Record<string, string> = {}
+    const cameraPattern = /^(IMG_\d+|PXL_\d{8}_\d+|VID_\d{8}_\d+)\.\w+$/
     for (const [key, mapping] of Object.entries(game.mappings)) {
       const tagged = mapping.player || mapping.line || mapping.tag || mapping.custom
-      names[key] = tagged ? buildFilename(mapping, key) : key
+      // Only build filename if key is still the original camera name
+      names[key] = (tagged && cameraPattern.test(key)) ? buildFilename(mapping, key) : key
     }
     setEditMappings(names)
   }

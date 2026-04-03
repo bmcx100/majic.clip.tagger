@@ -47,36 +47,42 @@ export default function Tagger() {
   }, [password])
 
   function updateMapping(updates: Partial<ClipMapping>) {
-    if (!game || !currentFilename) return
-    const updated: GameData = {
-      ...game,
-      mappings: {
-        ...game.mappings,
-        [currentFilename]: { ...currentMapping, ...updates },
-      },
-    }
-    setGame(updated)
+    if (!currentFilename) return
+    setGame(prev => {
+      if (!prev) return prev
+      const prevMapping = prev.mappings[currentFilename] || {
+        player: null, line: null, adjective: null, tag: null, custom: null,
+      }
+      return {
+        ...prev,
+        mappings: {
+          ...prev.mappings,
+          [currentFilename]: { ...prevMapping, ...updates },
+        },
+      }
+    })
   }
 
   function saveAndMove(direction: number) {
-    if (!game || !password) return
-    const updated = { ...game }
-    if (currentFilename) {
-      updated.mappings = { ...updated.mappings, [currentFilename]: currentMapping }
-    }
-    saveMappings(password, updated).catch(() => {})
-    setGame(updated)
-
-    setGames(prev => {
-      const idx = prev.findIndex(g => g.id === updated.id)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = updated
-        return next
-      }
-      return [updated, ...prev]
+    if (!password) return
+    setGame(prev => {
+      if (!prev) return prev
+      const mapping = currentFilename ? prev.mappings[currentFilename] : null
+      const updated = currentFilename && mapping
+        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: mapping } }
+        : prev
+      saveMappings(password, updated).catch(() => {})
+      setGames(list => {
+        const idx = list.findIndex(g => g.id === updated.id)
+        if (idx >= 0) {
+          const next = [...list]
+          next[idx] = updated
+          return next
+        }
+        return [updated, ...list]
+      })
+      return updated
     })
-
     setClipIndex(i => i + direction)
   }
 
@@ -165,13 +171,25 @@ export default function Tagger() {
   }
 
   function handleDone() {
-    if (!game || !password) return
-    const updated = { ...game }
-    if (currentFilename) {
-      updated.mappings = { ...updated.mappings, [currentFilename]: currentMapping }
-    }
-    saveMappings(password, updated).catch(() => {})
-    setGame(updated)
+    if (!password) return
+    setGame(prev => {
+      if (!prev) return prev
+      const mapping = currentFilename ? prev.mappings[currentFilename] : null
+      const updated = currentFilename && mapping
+        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: mapping } }
+        : prev
+      saveMappings(password, updated).catch(() => {})
+      setGames(list => {
+        const idx = list.findIndex(g => g.id === updated.id)
+        if (idx >= 0) {
+          const next = [...list]
+          next[idx] = updated
+          return next
+        }
+        return [updated, ...list]
+      })
+      return updated
+    })
     setDone(true)
   }
 
