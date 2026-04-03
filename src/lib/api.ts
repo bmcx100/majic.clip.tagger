@@ -28,6 +28,12 @@ export async function fetchMappings(password: string): Promise<GameData[]> {
   return res.json()
 }
 
+export async function fetchAllGames(password: string): Promise<GameData[]> {
+  const res = await fetch('/api/mappings?all=true', { headers: headers(password) })
+  if (!res.ok) throw new Error('Failed to fetch games')
+  return res.json()
+}
+
 export async function saveMappings(password: string, game: GameData): Promise<void> {
   const res = await fetch('/api/mappings', {
     method: 'POST',

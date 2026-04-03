@@ -13,10 +13,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     const index: string[] = (await redis.get('games:index')) || []
+    const all = req.query.all === 'true'
     const games = []
     for (const id of index) {
       const game = await redis.get(`game:${id}`)
-      if (game && !(game as any).processed) games.push(game)
+      if (game && (all || !(game as any).processed)) games.push(game)
     }
     return res.status(200).json(games)
   }

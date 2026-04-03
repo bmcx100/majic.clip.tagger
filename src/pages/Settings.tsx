@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/auth'
-import { fetchSettings, saveSettings, fetchMappings, saveMappings, deleteGame } from '../lib/api'
+import { fetchSettings, saveSettings, fetchAllGames, saveMappings, deleteGame } from '../lib/api'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
 import type { Settings, GameData } from '../lib/types'
 
@@ -80,7 +80,7 @@ function GamesTab({ password }: { password: string }) {
   const [editDesc, setEditDesc] = useState('')
 
   useEffect(() => {
-    fetchMappings(password).then(setGames).catch(() => {})
+    fetchAllGames(password).then(setGames).catch(() => {})
   }, [password])
 
   async function handleDelete(id: string) {
@@ -125,7 +125,10 @@ function GamesTab({ password }: { password: string }) {
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <p className="text-sm font-medium">{game.description}</p>
-                <p className="text-xs text-zinc-400">{Object.keys(game.mappings).length} clips</p>
+                <p className="text-xs text-zinc-400">
+                  {Object.keys(game.mappings).length} clips
+                  {game.processed && <span style={{ color: 'var(--color-success)' }}> - Submitted</span>}
+                </p>
               </div>
               <button onClick={() => startEdit(game)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Edit</button>
               <button onClick={() => handleDelete(game.id)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>Delete</button>
@@ -188,9 +191,9 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-dvh px-4 py-4 flex flex-col gap-4" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between h-11">
         <h1 className="font-display text-xl font-bold">Settings</h1>
-        <a href="/tagger" className="text-sm font-medium" style={{ color: 'var(--color-amber-600)' }}>Back</a>
+        <a href="/tagger" className="flex items-center h-11 text-sm font-medium" style={{ color: 'var(--color-amber-600)' }}>Back</a>
       </div>
 
       <div className="space-y-2">

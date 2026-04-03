@@ -156,14 +156,20 @@ export default function Tagger() {
           Share clip-tag-mappings.json
         </button>
         <button
-          onClick={() => { setDone(false); setClipIndex(0) }}
+          onClick={() => { setFiles([]); setClipIndex(0); setDone(false) }}
           className="w-full py-3 rounded-lg border font-medium"
           style={{ borderColor: 'var(--color-surface-border)' }}
         >
-          Edit Clips
+          Add/Redo Clips
         </button>
         <button
-          onClick={() => { setGame(null); setFiles([]); setClipIndex(0); setDone(false) }}
+          onClick={() => {
+            if (game && password) {
+              const submitted = { ...game, processed: true }
+              saveMappings(password, submitted).catch(() => {})
+            }
+            setGame(null); setFiles([]); setClipIndex(0); setDone(false)
+          }}
           className="w-full py-3 rounded-lg font-medium text-white"
           style={{ background: 'var(--color-amber-600)' }}
         >
