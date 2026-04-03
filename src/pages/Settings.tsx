@@ -161,6 +161,7 @@ function GamesTab({ password }: { password: string }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDesc, setEditDesc] = useState('')
   const [editMappings, setEditMappings] = useState<Record<string, string>>({})
+  const [jsonGame, setJsonGame] = useState<GameData | null>(null)
 
   useEffect(() => {
     fetchAllGames(password).then(setGames).catch(() => {})
@@ -220,6 +221,7 @@ function GamesTab({ password }: { password: string }) {
               {!isEditing && (
                 <div className="flex gap-1">
                   <button onClick={() => startEdit(game)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Edit</button>
+                  <button onClick={() => setJsonGame(game)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>JSON</button>
                   <button onClick={() => handleDelete(game.id)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>Delete</button>
                 </div>
               )}
@@ -279,6 +281,20 @@ function GamesTab({ password }: { password: string }) {
           </div>
         )
       })}
+
+      {jsonGame && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setJsonGame(null)}>
+          <div className="w-full max-w-md max-h-[80vh] rounded-xl flex flex-col" style={{ background: 'var(--color-surface-card)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-surface-border)' }}>
+              <p className="text-sm font-medium">{jsonGame.description} - JSON</p>
+              <button onClick={() => setJsonGame(null)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Close</button>
+            </div>
+            <pre className="flex-1 overflow-auto px-4 py-3 text-xs font-mono whitespace-pre-wrap break-all" style={{ color: '#A1A1AA' }}>
+              {JSON.stringify(jsonGame, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
