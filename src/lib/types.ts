@@ -10,6 +10,7 @@ export interface GameData {
   id: string
   description: string
   created: string
+  submitted?: boolean
   processed: boolean
   mappings: Record<string, ClipMapping>
 }

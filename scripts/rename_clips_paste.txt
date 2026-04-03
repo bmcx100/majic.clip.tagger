@@ -1,4 +1,6 @@
 // ==== CONFIGURATION ====
+var API_URL = "https://majic-clip-tagger.vercel.app/api/mappings";
+var API_PASSWORD = "CHANGE_ME"; // Must match APP_PASSWORD in Vercel env vars
 var SOURCE_FOLDER_ID = "1OKbt3ThRACnSCW2jWxzfZcOQ4wHh1lxH";
 var LOG_SHEET_ID = "1xaKOA5QPDInchMhvCK2BNkLAVPfyzpHm46LaFSQUtV0";
 var LOG_FOLDER_ID = "1SrW4XWRdlsha690dZCZTc1w6tBCbmIoX";
@@ -14,60 +16,74 @@ function doGet() {
 function buildResultsPage(results) {
   if (results.length === 0) {
     return "<html><body style='font-family:sans-serif;padding:24px;'>"
-      + "<h2>No JSON files found</h2>"
-      + "<p>Upload a mapping JSON to the uploads folder and try again.</p>"
+      + "<h2>Nothing to process</h2>"
+      + "<p>No submitted games found. Mary needs to tag clips and tap Submit first.</p>"
       + "</body></html>";
   }
 
   var rows = "";
   for (var i = 0; i < results.length; i++) {
     var r = results[i];
-    var color = r.renamed === r.total ? "#22c55e" : "#f59e0b";
+    var color = r.complete ? "#22c55e" : "#f59e0b";
+    var status = r.complete
+      ? r.processed + " of " + r.total + " - Done!"
+      : r.processed + " of " + r.total + " - " + r.missing + " missing, will retry next run";
     rows += "<tr>"
-      + "<td style='padding:8px;'>" + r.game + "</td>"
-      + "<td style='padding:8px;'><span style='color:" + color + ";font-weight:bold;'>" + r.renamed + " of " + r.total + "</span></td>"
+      + "<td style='padding:8px;border-bottom:1px solid #eee;'>" + r.game + "</td>"
+      + "<td style='padding:8px;border-bottom:1px solid #eee;'><span style='color:" + color + ";font-weight:bold;'>" + status + "</span></td>"
       + "</tr>";
   }
 
   return "<html><body style='font-family:sans-serif;padding:24px;'>"
     + "<h2>Done!</h2>"
-    + "<table style='border-collapse:collapse;'>"
-    + "<tr><th style='padding:8px;text-align:left;'>Game</th><th style='padding:8px;text-align:left;'>Files</th></tr>"
+    + "<table style='border-collapse:collapse;width:100%;'>"
+    + "<tr><th style='padding:8px;text-align:left;border-bottom:2px solid #ddd;'>Game</th>"
+    + "<th style='padding:8px;text-align:left;border-bottom:2px solid #ddd;'>Files</th></tr>"
     + rows
     + "</table>"
-    + "<p style='margin-top:16px;color:#888;'>Tap to run again anytime.</p>"
+    + "<p style='margin-top:16px;color:#888;'>Tap to run again anytime. Partial games will be retried.</p>"
     + "</body></html>";
 }
 
 // ==== MAIN ====
 function renameClips() {
-  var sourceFolder = DriveApp.getFolderById(SOURCE_FOLDER_ID);
+  // Fetch unprocessed games from the web app API
+  var response = UrlFetchApp.fetch(API_URL, {
+    headers: { "authorization": API_PASSWORD },
+    muteHttpExceptions: true
+  });
 
-  var mappingFiles = [];
-  var allFiles = sourceFolder.getFiles();
-  while (allFiles.hasNext()) {
-    var f = allFiles.next();
-    if (f.getName().endsWith(".json")) {
-      mappingFiles.push(f);
-    }
-  }
-
-  if (mappingFiles.length === 0) {
-    Logger.log("ERROR: No mapping JSON files found in folder.");
+  if (response.getResponseCode() !== 200) {
+    Logger.log("ERROR: API returned " + response.getResponseCode());
     return [];
   }
 
-  Logger.log("Found " + mappingFiles.length + " mapping file(s).");
+  var games = JSON.parse(response.getContentText());
 
-  var results = [];
-  for (var i = 0; i < mappingFiles.length; i++) {
-    results.push(processMapping(mappingFiles[i], sourceFolder));
+  // Only process games Mary has submitted
+  var submitted = [];
+  for (var i = 0; i < games.length; i++) {
+    if (games[i].submitted) submitted.push(games[i]);
   }
+
+  if (submitted.length === 0) {
+    Logger.log("No submitted games to process.");
+    return [];
+  }
+
+  Logger.log("Found " + submitted.length + " submitted game(s).");
+
+  var sourceFolder = DriveApp.getFolderById(SOURCE_FOLDER_ID);
+  var results = [];
+
+  for (var i = 0; i < submitted.length; i++) {
+    results.push(processGame(submitted[i], sourceFolder));
+  }
+
   return results;
 }
 
-function processMapping(mappingFile, sourceFolder) {
-  var game = JSON.parse(mappingFile.getBlob().getDataAsString());
+function processGame(game, sourceFolder) {
   var description = game.description;
   var mappings = game.mappings;
   var filenames = Object.keys(mappings).sort();
@@ -75,23 +91,32 @@ function processMapping(mappingFile, sourceFolder) {
   var gameFolder = getOrCreateSubfolder(sourceFolder, description);
 
   Logger.log("Game: " + description);
-  Logger.log("Files: " + filenames.length);
+  Logger.log("Clips: " + filenames.length);
   Logger.log("--------------------------------------------------");
 
   var renamed = 0;
+  var alreadyDone = 0;
   var missing = 0;
 
   for (var i = 0; i < filenames.length; i++) {
     var originalName = filenames[i];
+    var ext = getExtension(originalName);
+    var newName = buildFilename(mappings[originalName], originalName, ext);
+
+    // Check if already renamed in a previous run
+    if (findFile(gameFolder, newName)) {
+      Logger.log("  ALREADY DONE: " + newName);
+      alreadyDone++;
+      continue;
+    }
+
+    // Try to find the original file in the uploads folder
     var file = findFile(sourceFolder, originalName);
     if (!file) {
       Logger.log("  MISSING: " + originalName);
       missing++;
       continue;
     }
-
-    var ext = getExtension(originalName);
-    var newName = buildFilename(mappings[originalName], originalName, ext);
 
     file.setName(newName);
     file.moveTo(gameFolder);
@@ -100,45 +125,59 @@ function processMapping(mappingFile, sourceFolder) {
   }
 
   var total = filenames.length;
+  var processed = renamed + alreadyDone;
+  var allDone = (missing === 0);
+
+  // Log to spreadsheet
   var now = new Date();
-  var complete = renamed === total ? "Yes" : "No";
   var sheet = SpreadsheetApp.openById(LOG_SHEET_ID).getActiveSheet();
   sheet.appendRow([
     Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd"),
     Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss"),
-    mappingFile.getName(),
-    complete,
-    renamed,
-    total
+    description,
+    allDone ? "Complete" : "Partial",
+    processed + " of " + total,
+    renamed + " new, " + alreadyDone + " already done, " + missing + " missing"
   ]);
-  Logger.log("  Logged to sheet");
 
-  var parents = sourceFolder.getParents();
-  if (parents.hasNext()) {
-    var marysFolder = parents.next();
-    gameFolder.moveTo(marysFolder);
-    Logger.log("  Moved folder to: " + marysFolder.getName() + "/" + description + "/");
+  if (allDone) {
+    // All files found and renamed - move game folder out of uploads
+    var parents = sourceFolder.getParents();
+    if (parents.hasNext()) {
+      var marysFolder = parents.next();
+      gameFolder.moveTo(marysFolder);
+      Logger.log("  Moved folder to: " + marysFolder.getName() + "/" + description + "/");
+    }
+
+    // Mark game as processed in the API so it won't appear next run
+    game.processed = true;
+    UrlFetchApp.fetch(API_URL, {
+      method: "post",
+      contentType: "application/json",
+      headers: { "authorization": API_PASSWORD },
+      payload: JSON.stringify(game),
+      muteHttpExceptions: true
+    });
+    Logger.log("  Marked as processed in API.");
+  } else {
+    Logger.log("  " + missing + " file(s) missing - will retry next run.");
   }
 
-  Logger.log("Done: " + renamed + " renamed, " + missing + " missing");
+  Logger.log("Done: " + renamed + " renamed, " + alreadyDone + " already done, " + missing + " missing");
 
-  // Last step: copy clip-tag-mappings.json from source folder to logs, renamed
-  var logsFolder = DriveApp.getFolderById(LOG_FOLDER_ID);
-  var jsonInSource = sourceFolder.getFilesByName("clip-tag-mappings.json");
-  if (jsonInSource.hasNext()) {
-    var originalJson = jsonInSource.next();
-    var newJsonName = description.replace(/\u2014/g, "-") + "-clip-tag-mappings.json";
-    originalJson.makeCopy(newJsonName, logsFolder);
-    originalJson.setTrashed(true);
-    Logger.log("  Copied to logs as " + newJsonName);
-  }
-
-  return { game: description, renamed: renamed, total: total };
+  return {
+    game: description,
+    renamed: renamed,
+    processed: processed,
+    missing: missing,
+    total: total,
+    complete: allDone
+  };
 }
 
 function buildFilename(mapping, originalName, ext) {
-  var imgMatch = originalName.match(/(IMG_\d+)/);
-  var imgId = imgMatch ? imgMatch[1] : originalName.replace(/\.[^.]+$/, "");
+  var cameraMatch = originalName.match(/(IMG_\d+|PXL_\d{8}_\d+|VID_\d{8}_\d+)/);
+  var imgId = cameraMatch ? cameraMatch[1] : originalName.replace(/\.[^.]+$/, "");
 
   var parts = [];
 

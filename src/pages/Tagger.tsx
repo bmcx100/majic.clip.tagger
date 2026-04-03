@@ -264,7 +264,7 @@ export default function Tagger() {
         <button
           onClick={() => {
             if (game && password) {
-              const submitted = { ...game, processed: true }
+              const submitted = { ...game, submitted: true }
               saveMappings(password, submitted).catch(() => {})
             }
             setGame(null); setFiles([]); setClipIndex(0); setDone(false)
@@ -367,7 +367,7 @@ export default function Tagger() {
             <button
               onClick={() => {
                 if (password) {
-                  const submitted = { ...game, processed: true }
+                  const submitted = { ...game, submitted: true }
                   saveMappings(password, submitted).catch(() => {})
                 }
                 setGame(null); setFiles([]); setClipIndex(0); setDone(false)

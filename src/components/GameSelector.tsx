@@ -75,7 +75,7 @@ export default function GameSelector({ games, currentGameId, onSelectGame, onNew
       >
         <option value="" disabled>Select a game...</option>
         {games.map(g => (
-          <option key={g.id} value={g.id}>{g.description}</option>
+          <option key={g.id} value={g.id}>{g.description}{g.submitted ? ' (Submitted)' : ''}</option>
         ))}
       </select>
     </div>
