@@ -252,6 +252,15 @@ export default function Tagger() {
 
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', background: '#FFFFFF' }}>
+      <div className="flex items-center px-2 py-1">
+        <button
+          onClick={() => { if (game && password) saveMappings(password, game).catch(() => {}); setFiles([]); setClipIndex(0) }}
+          className="flex items-center gap-1 px-2 py-1 text-sm font-medium"
+          style={{ color: 'var(--color-amber-600)' }}
+        >
+          <span>&lsaquo;</span> Back
+        </button>
+      </div>
       <VideoPlayer src={videoUrl} />
 
       <TitlePreview
