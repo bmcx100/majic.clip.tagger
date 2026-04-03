@@ -213,7 +213,9 @@ function GamesTab({ password }: { password: string }) {
                 <p className="text-sm font-medium">{game.description}</p>
                 <p className="text-xs text-zinc-400">
                   {clips.length} clips
-                  {game.processed && <span style={{ color: 'var(--color-success)' }}> - Submitted</span>}
+                  {game.submitted
+                    ? <span style={{ color: 'var(--color-success)' }}> - Submitted</span>
+                    : <span style={{ color: '#A1A1AA' }}> - Not Submitted</span>}
                 </p>
               </div>
               {!isEditing && (
