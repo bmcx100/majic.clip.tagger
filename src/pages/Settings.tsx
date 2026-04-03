@@ -178,20 +178,18 @@ function GamesTab({ password }: { password: string }) {
     setEditingId(game.id)
     setEditDesc(game.description)
     const names: Record<string, string> = {}
-    const cameraPattern = /^(IMG_\d+|PXL_\d{8}_\d+|VID_\d{8}_\d+)\.\w+$/
     for (const [key, mapping] of Object.entries(game.mappings)) {
       const tagged = mapping.player || mapping.line || mapping.tag || mapping.custom
-      // Only build filename if key is still the original camera name
-      names[key] = (tagged && cameraPattern.test(key)) ? buildFilename(mapping, key) : key
+      names[key] = mapping.newFilename || (tagged ? buildFilename(mapping, key) : key)
     }
     setEditMappings(names)
   }
 
   async function saveEdit(game: GameData) {
     const newMappings: Record<string, typeof game.mappings[string]> = {}
-    for (const [oldKey, mapping] of Object.entries(game.mappings)) {
-      const newKey = editMappings[oldKey]?.trim() || oldKey
-      newMappings[newKey] = mapping
+    for (const [key, mapping] of Object.entries(game.mappings)) {
+      const editedName = editMappings[key]?.trim()
+      newMappings[key] = { ...mapping, newFilename: editedName || mapping.newFilename || null }
     }
     const updated = { ...game, description: editDesc.trim() || game.description, mappings: newMappings }
     await saveMappings(password, updated).catch(() => {})

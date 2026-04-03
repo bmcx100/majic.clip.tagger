@@ -69,7 +69,7 @@ export default function Tagger() {
       if (!prev) return prev
       const mapping = currentFilename ? prev.mappings[currentFilename] : null
       const updated = currentFilename && mapping
-        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: mapping } }
+        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: { ...mapping, newFilename: buildFilename(mapping, currentFilename) } } }
         : prev
       saveMappings(password, updated).catch(() => {})
       setGames(list => {
@@ -176,7 +176,7 @@ export default function Tagger() {
       if (!prev) return prev
       const mapping = currentFilename ? prev.mappings[currentFilename] : null
       const updated = currentFilename && mapping
-        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: mapping } }
+        ? { ...prev, mappings: { ...prev.mappings, [currentFilename]: { ...mapping, newFilename: buildFilename(mapping, currentFilename) } } }
         : prev
       saveMappings(password, updated).catch(() => {})
       setGames(list => {
@@ -353,7 +353,7 @@ export default function Tagger() {
                 {existingClips.map(name => {
                   const m = game.mappings[name]
                   const tagged = m.player || m.line || m.tag
-                  const displayName = buildFilename(m, name)
+                  const displayName = m.newFilename || buildFilename(m, name)
                   return (
                     <div key={name} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
                       <span className="text-xs font-medium shrink-0" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>

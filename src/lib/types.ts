@@ -4,6 +4,7 @@ export interface ClipMapping {
   adjective: string | null
   tag: string | null
   custom: string | null
+  newFilename?: string | null
 }
 
 export interface GameData {
