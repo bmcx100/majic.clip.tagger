@@ -17,8 +17,8 @@ export function buildFilename(
   mapping: { player: string | null; line: string | null; adjective: string | null; tag: string | null; custom: string | null },
   originalFilename: string
 ): string {
-  const imgMatch = originalFilename.match(/(IMG_\d+)/)
-  const imgId = imgMatch ? imgMatch[1] : originalFilename.replace(/\.[^.]+$/, '')
+  const cameraMatch = originalFilename.match(/(IMG_\d+|PXL_\d{8}_\d+|VID_\d{8}_\d+)/)
+  const imgId = cameraMatch ? cameraMatch[1] : originalFilename.replace(/\.[^.]+$/, '')
   const ext = originalFilename.includes('.') ? originalFilename.slice(originalFilename.lastIndexOf('.')) : ''
 
   const whoParts: string[] = []

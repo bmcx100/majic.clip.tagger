@@ -2,14 +2,31 @@
 
 ## What This Is
 
-A web app for tagging hockey game clips + a Python script that renames files on Google Drive.
+A two-part system for recording, tagging, and organizing hockey game video clips on Google Drive. Built for the U13A Wildcats.
 
-Built for the U13A Wildcats. A parent (iPhone 16S user, not tech-savvy) records 30-50 clips per game (20-120MB each), tags them in this app, then uploads the raw files to a shared Google Drive folder. The team admin runs a script that fetches the tag mappings and renames the files on Drive.
+### The Workflow
+
+1. **Mary (iPhone 16S)** records 30-50 short clips per game (15s-2min each, 20-120MB per file) during the game
+2. After the game, Mary opens the web app and selects the video files from her camera roll
+3. For each clip she reviews the video and tags it - selecting the player, line (White/Red/Gold), and event type (Goal, Save, Great Play, etc.)
+4. Tags are saved to Vercel KV (Redis). The app also builds a `clip-tag-mappings.json` file mapping original filenames (like `IMG_5528.MOV`) to their tag data
+5. Mary uploads her raw video files to a shared Google Drive folder
+6. **Ryan (Android Pixel, team admin)** runs a Google Apps Script that reads the JSON mapping and renames each video file on Drive from its camera name to a descriptive name like `White Line Adria - Nice Goal IMG_5528.MOV`
+7. The script also creates a game folder and moves all renamed clips into it
+
+### Critical Dependency: Original Filenames
+
+The entire workflow depends on the JSON mapping keys matching the actual filenames on Google Drive. Mobile browsers often return content-URI names (like `10000428827.mp4`) instead of real camera filenames (like `IMG_5528.MOV`). The app extracts original filenames from the video file's binary metadata to work around this.
 
 ## Architecture
 
-1. **Web app** — Vite + React + Tailwind, deployed to Vercel, uses Vercel KV for tag mapping storage
-2. **Python script** — runs on admin's machine, reads mappings from app API, renames files on Google Drive via Drive API
+1. **Web app** - Vite + React + Tailwind, deployed to Vercel (majic-clip-tagger.vercel.app), uses Vercel KV (Upstash Redis) for tag mapping storage
+2. **Google Apps Script** - runs from Ryan's phone/browser, reads the JSON mapping, renames files on Google Drive, creates game folders, logs to Google Sheet. Script source: `scripts/rename_clips_paste.txt`
+
+## Users
+
+- **Mary (tagger)**: iPhone 16S. Records videos, tags them in the web app, uploads raw files to Google Drive
+- **Ryan (admin)**: Android Pixel. Runs the Google Apps Script to rename files on Drive
 
 ## Build Plan
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, fetchMappings, saveMappings } from '../lib/api'
 import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
+import { correctFileNames } from '../lib/extractFilename'
 import type { Settings, GameData, ClipMapping } from '../lib/types'
 import GameSelector from '../components/GameSelector'
 import VideoPlayer from '../components/VideoPlayer'
@@ -18,8 +19,10 @@ export default function Tagger() {
   const [games, setGames] = useState<GameData[]>([])
   const [game, setGame] = useState<GameData | null>(null)
   const [files, setFiles] = useState<File[]>([])
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [clipIndex, setClipIndex] = useState(0)
   const [done, setDone] = useState(false)
+  const [extracting, setExtracting] = useState(false)
 
   const currentFile = files[clipIndex] || null
   const currentFilename = currentFile?.name || ''
@@ -76,12 +79,23 @@ export default function Tagger() {
     setClipIndex(i => i + direction)
   }
 
-  function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
+    setExtracting(true)
+    try {
+      const corrected = await correctFileNames(selected)
+      setPendingFiles(corrected)
+    } catch {
+      setPendingFiles(selected)
+    } finally {
+      setExtracting(false)
+    }
+  }
 
+  function confirmFiles() {
     const existingNames = new Set(files.map(f => f.name))
-    const newFiles = selected.filter(f => !existingNames.has(f.name))
+    const newFiles = pendingFiles.filter(f => !existingNames.has(f.name))
     const combined = [...files, ...newFiles]
     setFiles(combined)
     if (files.length === 0) setClipIndex(0)
@@ -96,6 +110,18 @@ export default function Tagger() {
       }
       setGame({ ...game, mappings })
     }
+    setPendingFiles([])
+  }
+
+  function formatSize(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  function formatDate(ms: number): string {
+    const d = new Date(ms)
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`
   }
 
   function handleNewGame(newGame: GameData) {
@@ -126,6 +152,54 @@ export default function Tagger() {
 
   function shareJson() {
     downloadJson()
+  }
+
+  if (extracting) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-dvh gap-3">
+        <div className="w-8 h-8 border-2 border-zinc-200 border-t-amber-600 rounded-full animate-spin" />
+        <p className="text-sm text-zinc-400">Reading file names...</p>
+      </div>
+    )
+  }
+
+  if (pendingFiles.length > 0) {
+    return (
+      <div className="flex flex-col min-h-dvh">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setPendingFiles([])}
+            className="flex items-center gap-1 text-sm font-medium"
+            style={{ color: 'var(--color-amber-600)' }}
+          >
+            <span>&lsaquo;</span> Cancel
+          </button>
+          <h1 className="font-display text-base font-bold">Confirm {pendingFiles.length} Clips</h1>
+          <div className="w-16" />
+        </div>
+        <div className="flex-1 px-4 space-y-1 overflow-y-auto">
+          {pendingFiles.map((f, i) => (
+            <div key={i} className="px-3 py-2.5 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+              <p className="text-sm font-medium truncate">{f.name}</p>
+              <div className="flex gap-3 mt-1">
+                <span className="text-xs text-zinc-400">{formatSize(f.size)}</span>
+                <span className="text-xs text-zinc-400">{f.type || 'unknown'}</span>
+                <span className="text-xs text-zinc-400">{formatDate(f.lastModified)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+          <button
+            onClick={confirmFiles}
+            className="w-full py-3 rounded-lg font-medium text-white"
+            style={{ background: 'var(--color-amber-600)' }}
+          >
+            Start Tagging
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (done && game) {
