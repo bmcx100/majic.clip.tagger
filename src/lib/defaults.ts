@@ -21,22 +21,25 @@ export function buildFilename(
   const imgId = imgMatch ? imgMatch[1] : originalFilename.replace(/\.[^.]+$/, '')
   const ext = originalFilename.includes('.') ? originalFilename.slice(originalFilename.lastIndexOf('.')) : ''
 
-  const parts: string[] = []
+  const whoParts: string[] = []
+  if (mapping.line) whoParts.push(`${mapping.line} Line`)
+  if (mapping.player) whoParts.push(mapping.player)
 
-  if (mapping.line) parts.push(`${mapping.line} Line`)
-  if (mapping.player) parts.push(mapping.player)
   const tagParts = [mapping.adjective, mapping.tag].filter(Boolean).join(' ')
+
+  const segments: string[] = []
+  if (whoParts.length > 0) segments.push(whoParts.join(' '))
   if (tagParts) {
-    parts.push(tagParts)
-  } else if (!mapping.line && !mapping.player) {
-    parts.push('Clip')
+    segments.push(tagParts)
+  } else if (whoParts.length === 0) {
+    segments.push('Clip')
   }
-  if (mapping.custom) parts.push(mapping.custom)
 
-  if (parts.length === 0) parts.push('Clip')
+  let result = segments.join(' - ')
+  if (mapping.custom) result += ' ' + mapping.custom
+  if (!result) result = 'Clip'
 
-  parts.push(imgId)
-  return parts.join(' ') + ext
+  return result + ' ' + imgId + ext
 }
 
 export function generateGameId(description: string): string {

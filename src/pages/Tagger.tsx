@@ -176,6 +176,7 @@ export default function Tagger() {
   }
 
   if (files.length === 0) {
+    const existingClips = Object.keys(game.mappings)
     return (
       <div className="flex flex-col min-h-dvh">
         <div className="flex items-center justify-between px-4 py-4">
@@ -187,9 +188,9 @@ export default function Tagger() {
             </svg>
           </a>
         </div>
-        <div className="flex flex-col items-center gap-4 px-6 pt-8">
+        <div className="flex flex-col gap-4 px-6 pt-4">
           <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
-            Select Videos
+            {existingClips.length > 0 ? 'Add More Videos' : 'Select Videos'}
             <input
               type="file"
               accept="video/*"
@@ -198,13 +199,32 @@ export default function Tagger() {
               className="hidden"
             />
           </label>
+          {existingClips.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-zinc-400 font-medium">{existingClips.length} clips tagged</p>
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {existingClips.map(name => {
+                  const m = game.mappings[name]
+                  const tagged = m.player || m.line || m.tag
+                  return (
+                    <div key={name} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+                      <span className="flex-1 text-xs font-mono truncate">{name}</span>
+                      <span className="text-xs" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
+                        {tagged ? 'Tagged' : 'Skipped'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', background: '#FFFFFF' }}>
       <VideoPlayer src={videoUrl} />
 
       <TitlePreview
