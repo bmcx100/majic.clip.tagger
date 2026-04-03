@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, fetchMappings, saveMappings } from '../lib/api'
-import { DEFAULT_SETTINGS } from '../lib/defaults'
+import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
 import type { Settings, GameData, ClipMapping } from '../lib/types'
 import GameSelector from '../components/GameSelector'
 import VideoPlayer from '../components/VideoPlayer'
@@ -124,33 +124,7 @@ export default function Tagger() {
     URL.revokeObjectURL(url)
   }
 
-  async function shareJson() {
-    if (!game) return
-    const json = JSON.stringify(game, null, 2)
-    const file = new File([json], 'clip-tag-mappings.json', { type: 'application/json' })
-    try {
-      if (navigator.share) {
-        await navigator.share({ files: [file] })
-        return
-      }
-    } catch (_) {
-      // share failed or was cancelled, try without files
-    }
-    try {
-      if (navigator.share) {
-        const blob = new Blob([json], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        await navigator.share({
-          title: 'clip-tag-mappings.json',
-          text: json,
-        })
-        URL.revokeObjectURL(url)
-        return
-      }
-    } catch (_) {
-      // text share also failed
-    }
-    // final fallback: download
+  function shareJson() {
     downloadJson()
   }
 
@@ -226,29 +200,37 @@ export default function Tagger() {
     const existingClips = Object.keys(game.mappings)
     return (
       <div className="flex flex-col min-h-dvh">
-        <div className="flex items-center justify-between px-4 py-4">
-          <h1 className="font-display text-xl font-bold">{game.description}</h1>
+        <div className="flex items-center justify-between px-4 py-2">
+          <button
+            onClick={() => { setGame(null) }}
+            className="flex items-center gap-1 text-sm font-medium"
+            style={{ color: 'var(--color-amber-600)' }}
+          >
+            <span>&lsaquo;</span> Back
+          </button>
+          <h1 className="font-display text-base font-bold">{game.description}</h1>
           <a href="/settings" className="flex items-center justify-center w-11 h-11 rounded-lg" style={{ color: '#a1a1aa' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
           </a>
         </div>
-        <div className="flex flex-col gap-4 px-6 pt-4">
+        <div className="flex flex-col gap-4 px-4 pt-2 flex-1">
           {existingClips.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <p className="text-xs text-zinc-400 font-medium">{existingClips.length} clips saved</p>
-              <div className="space-y-1 max-h-64 overflow-y-auto">
+              <div className="space-y-1 max-h-72 overflow-y-auto">
                 {existingClips.map(name => {
                   const m = game.mappings[name]
                   const tagged = m.player || m.line || m.tag
+                  const displayName = buildFilename(m, name)
                   return (
                     <div key={name} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
-                      <span className="flex-1 text-xs font-mono truncate">{name}</span>
-                      <span className="text-xs" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
+                      <span className="text-xs font-medium shrink-0" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
                         {tagged ? 'Tagged' : 'Skipped'}
                       </span>
+                      <span className="flex-1 text-xs font-mono truncate text-right">{displayName}</span>
                     </div>
                   )
                 })}
@@ -256,7 +238,7 @@ export default function Tagger() {
             </div>
           )}
           <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
-            {existingClips.length > 0 ? 'Select Videos' : 'Select Videos'}
+            Select Videos
             <input
               type="file"
               accept="video/*"
@@ -270,6 +252,21 @@ export default function Tagger() {
               ? 'Select new videos to tag, or re-select previous ones to edit their tags. Only loaded videos can be viewed and tagged.'
               : 'Choose video clips from your camera roll to start tagging.'}
           </p>
+          {existingClips.length > 0 && (
+            <button
+              onClick={() => {
+                if (password) {
+                  const submitted = { ...game, processed: true }
+                  saveMappings(password, submitted).catch(() => {})
+                }
+                setGame(null); setFiles([]); setClipIndex(0); setDone(false)
+              }}
+              className="w-full py-3 rounded-lg border font-medium"
+              style={{ borderColor: 'var(--color-surface-border)' }}
+            >
+              Submit
+            </button>
+          )}
         </div>
       </div>
     )
