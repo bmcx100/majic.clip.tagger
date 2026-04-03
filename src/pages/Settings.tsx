@@ -276,6 +276,18 @@ function GamesTab({ password }: { password: string }) {
                     Cancel
                   </button>
                 </div>
+                <button
+                  onClick={async () => {
+                    await saveEdit(game)
+                    const updated = { ...game, submitted: true }
+                    await saveMappings(password, updated).catch(() => {})
+                    setGames(prev => prev.map(g => g.id === game.id ? updated : g))
+                  }}
+                  className="w-full py-2 rounded-lg font-medium text-sm"
+                  style={{ background: game.submitted ? 'var(--color-success)' : 'var(--color-surface-border)', color: game.submitted ? 'white' : undefined }}
+                >
+                  {game.submitted ? 'Submitted' : 'Submit'}
+                </button>
               </div>
             )}
           </div>
