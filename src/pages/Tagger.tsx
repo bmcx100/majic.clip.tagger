@@ -207,34 +207,57 @@ export default function Tagger() {
           </a>
         </div>
         <div className="flex flex-col gap-4 px-6 pt-4">
-          <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
-            {existingClips.length > 0 ? 'Add More Videos' : 'Select Videos'}
-            <input
-              type="file"
-              accept="video/*"
-              multiple
-              onChange={handleSelectFiles}
-              className="hidden"
-            />
-          </label>
-          {existingClips.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-400 font-medium">{existingClips.length} clips tagged</p>
-              <div className="space-y-1 max-h-64 overflow-y-auto">
-                {existingClips.map(name => {
-                  const m = game.mappings[name]
-                  const tagged = m.player || m.line || m.tag
-                  return (
-                    <div key={name} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
-                      <span className="flex-1 text-xs font-mono truncate">{name}</span>
-                      <span className="text-xs" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
-                        {tagged ? 'Tagged' : 'Skipped'}
-                      </span>
-                    </div>
-                  )
-                })}
+          {existingClips.length > 0 ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-400 font-medium">{existingClips.length} clips</p>
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {existingClips.map(name => {
+                    const m = game.mappings[name]
+                    const tagged = m.player || m.line || m.tag
+                    return (
+                      <div key={name} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+                        <span className="flex-1 text-xs font-mono truncate">{name}</span>
+                        <span className="text-xs" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
+                          {tagged ? 'Tagged' : 'Skipped'}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+              <label className="w-full py-3 rounded-lg border font-medium text-center cursor-pointer" style={{ borderColor: 'var(--color-surface-border)' }}>
+                Add More Videos
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={handleSelectFiles}
+                  className="hidden"
+                />
+              </label>
+              <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer block" style={{ background: 'var(--color-amber-600)' }}>
+                Tag Clips
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={handleSelectFiles}
+                  className="hidden"
+                />
+              </label>
+            </>
+          ) : (
+            <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
+              Select Videos
+              <input
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={handleSelectFiles}
+                className="hidden"
+              />
+            </label>
           )}
         </div>
       </div>
