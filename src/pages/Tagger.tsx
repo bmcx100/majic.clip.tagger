@@ -79,13 +79,17 @@ export default function Tagger() {
   function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
-    setFiles(selected)
-    setClipIndex(0)
+
+    const existingNames = new Set(files.map(f => f.name))
+    const newFiles = selected.filter(f => !existingNames.has(f.name))
+    const combined = [...files, ...newFiles]
+    setFiles(combined)
+    if (files.length === 0) setClipIndex(0)
     setDone(false)
 
     if (game) {
       const mappings = { ...game.mappings }
-      for (const f of selected) {
+      for (const f of newFiles) {
         if (!mappings[f.name]) {
           mappings[f.name] = { player: null, line: null, adjective: null, tag: null, custom: null }
         }
