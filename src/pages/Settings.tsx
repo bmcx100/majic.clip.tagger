@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, saveSettings, fetchAllGames, saveMappings, deleteGame } from '../lib/api'
-import { DEFAULT_SETTINGS } from '../lib/defaults'
+import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
 import type { Settings, GameData } from '../lib/types'
 
 type Tab = 'games' | 'roster' | 'lines' | 'adjectives' | 'tags' | 'callup'
@@ -76,6 +76,7 @@ function EditableList({
 
 function GamesTab({ password }: { password: string }) {
   const [games, setGames] = useState<GameData[]>([])
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDesc, setEditDesc] = useState('')
 
@@ -87,6 +88,7 @@ function GamesTab({ password }: { password: string }) {
     if (!confirm('Delete this game and all its tags?')) return
     await deleteGame(password, id).catch(() => {})
     setGames(prev => prev.filter(g => g.id !== id))
+    if (expandedId === id) setExpandedId(null)
   }
 
   function startEdit(game: GameData) {
@@ -106,36 +108,66 @@ function GamesTab({ password }: { password: string }) {
   }
 
   return (
-    <div className="space-y-1">
-      {games.map(game => (
-        <div key={game.id} className="px-3 py-3 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
-          {editingId === game.id ? (
-            <div className="flex gap-2">
-              <input
-                value={editDesc}
-                onChange={e => setEditDesc(e.target.value)}
-                autoFocus
-                className="flex-1 px-2 py-1 rounded border text-base"
-                style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
-              />
-              <button onClick={() => saveEdit(game)} className="text-xs px-2 py-1 rounded font-medium" style={{ color: 'var(--color-amber-600)' }}>Save</button>
-              <button onClick={() => setEditingId(null)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Cancel</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
+    <div className="space-y-2">
+      {games.map(game => {
+        const isExpanded = expandedId === game.id
+        const clips = Object.entries(game.mappings)
+        return (
+          <div key={game.id} className="rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-3 cursor-pointer"
+              onClick={() => setExpandedId(isExpanded ? null : game.id)}
+            >
+              <span className="text-zinc-400 text-sm">{isExpanded ? '▾' : '▸'}</span>
               <div className="flex-1">
-                <p className="text-sm font-medium">{game.description}</p>
-                <p className="text-xs text-zinc-400">
-                  {Object.keys(game.mappings).length} clips
-                  {game.processed && <span style={{ color: 'var(--color-success)' }}> - Submitted</span>}
-                </p>
+                {editingId === game.id ? (
+                  <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                    <input
+                      value={editDesc}
+                      onChange={e => setEditDesc(e.target.value)}
+                      autoFocus
+                      className="flex-1 px-2 py-1 rounded border text-base"
+                      style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
+                    />
+                    <button onClick={() => saveEdit(game)} className="text-xs px-2 py-1 rounded font-medium" style={{ color: 'var(--color-amber-600)' }}>Save</button>
+                    <button onClick={() => setEditingId(null)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium">{game.description}</p>
+                    <p className="text-xs text-zinc-400">
+                      {clips.length} clips
+                      {game.processed && <span style={{ color: 'var(--color-success)' }}> - Submitted</span>}
+                    </p>
+                  </>
+                )}
               </div>
-              <button onClick={() => startEdit(game)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Edit</button>
-              <button onClick={() => handleDelete(game.id)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>Delete</button>
+              {editingId !== game.id && (
+                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => startEdit(game)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Edit</button>
+                  <button onClick={() => handleDelete(game.id)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>Delete</button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+            {isExpanded && clips.length > 0 && (
+              <div className="border-t px-3 py-2 space-y-1" style={{ borderColor: 'var(--color-surface-border)' }}>
+                {clips.map(([name, m]) => {
+                  const tagged = m.player || m.line || m.tag
+                  const displayName = buildFilename(m, name)
+                  return (
+                    <div key={name} className="flex items-center gap-2 py-1">
+                      <span className="text-xs font-medium shrink-0" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
+                        {tagged ? 'Tagged' : 'Skipped'}
+                      </span>
+                      <span className="flex-1 text-xs font-mono truncate text-right">{displayName}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
