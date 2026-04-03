@@ -97,6 +97,7 @@ function processGame(game, sourceFolder) {
   var renamed = 0;
   var alreadyDone = 0;
   var missing = 0;
+  var missingNames = [];
 
   for (var i = 0; i < filenames.length; i++) {
     var originalName = filenames[i];
@@ -114,6 +115,7 @@ function processGame(game, sourceFolder) {
     var file = findFile(sourceFolder, originalName);
     if (!file) {
       Logger.log("  MISSING: " + originalName);
+      missingNames.push(originalName);
       missing++;
       continue;
     }
@@ -137,7 +139,8 @@ function processGame(game, sourceFolder) {
     description,
     allDone ? "Complete" : "Partial",
     processed + " of " + total,
-    renamed + " new, " + alreadyDone + " already done, " + missing + " missing"
+    renamed + " new, " + alreadyDone + " already done, " + missing + " missing",
+    missingNames.length > 0 ? missingNames.join(", ") : ""
   ]);
 
   if (allDone && !TEST_MODE) {
