@@ -128,11 +128,30 @@ export default function Tagger() {
     if (!game) return
     const json = JSON.stringify(game, null, 2)
     const file = new File([json], 'clip-tag-mappings.json', { type: 'application/json' })
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] }).catch(() => {})
-    } else {
-      downloadJson()
+    try {
+      if (navigator.share) {
+        await navigator.share({ files: [file] })
+        return
+      }
+    } catch (_) {
+      // share failed or was cancelled, try without files
     }
+    try {
+      if (navigator.share) {
+        const blob = new Blob([json], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        await navigator.share({
+          title: 'clip-tag-mappings.json',
+          text: json,
+        })
+        URL.revokeObjectURL(url)
+        return
+      }
+    } catch (_) {
+      // text share also failed
+    }
+    // final fallback: download
+    downloadJson()
   }
 
   if (done && game) {
