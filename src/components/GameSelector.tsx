@@ -31,21 +31,23 @@ export default function GameSelector({ games, currentGameId, onSelectGame, onNew
 
   if (creating) {
     return (
-      <form onSubmit={handleCreate} className="flex gap-2 px-4 py-2">
+      <form onSubmit={handleCreate} className="flex flex-wrap gap-2 px-4 py-2">
         <input
           value={description}
           onChange={e => setDescription(e.target.value)}
           autoFocus
-          className="flex-1 px-3 py-2 rounded-lg border text-base"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg border text-base"
           style={{ background: 'var(--color-surface-card)', borderColor: 'var(--color-surface-border)' }}
           placeholder="Apr 02 - vs Thunder"
         />
-        <button type="submit" className="px-4 py-2 rounded-lg text-white font-medium" style={{ background: 'var(--color-amber-600)' }}>
-          Go
-        </button>
-        <button type="button" onClick={() => setCreating(false)} className="px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
-          Cancel
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" className="px-4 py-2 rounded-lg text-white font-medium" style={{ background: 'var(--color-amber-600)' }}>
+            Go
+          </button>
+          <button type="button" onClick={() => setCreating(false)} className="px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
+            Cancel
+          </button>
+        </div>
       </form>
     )
   }
