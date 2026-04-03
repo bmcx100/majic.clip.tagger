@@ -120,6 +120,17 @@ export default function Tagger() {
     URL.revokeObjectURL(url)
   }
 
+  async function shareJson() {
+    if (!game) return
+    const json = JSON.stringify(game, null, 2)
+    const file = new File([json], 'clip-tag-mappings.json', { type: 'application/json' })
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] }).catch(() => {})
+    } else {
+      downloadJson()
+    }
+  }
+
   if (done && game) {
     const total = Object.keys(game.mappings).length
     const tagged = Object.values(game.mappings).filter(
@@ -128,24 +139,31 @@ export default function Tagger() {
     const skipped = total - tagged
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-dvh px-4 gap-4">
-        <h1 className="font-display text-2xl font-bold">All Done!</h1>
+      <div className="flex flex-col items-center justify-center min-h-dvh px-6 gap-4">
         <p className="font-mono text-sm" style={{ color: '#A1A1AA' }}>
           {tagged} tagged, {skipped} skipped
         </p>
+        <h1 className="font-display text-2xl font-bold">All Done!</h1>
         <button
-          onClick={downloadJson}
-          className="px-6 py-3 rounded-lg font-medium text-white"
-          style={{ background: 'var(--color-amber-600)' }}
+          onClick={shareJson}
+          className="w-full py-3 rounded-lg border font-medium"
+          style={{ borderColor: 'var(--color-surface-border)' }}
         >
-          Download clip-tag-mappings.json
+          Share clip-tag-mappings.json
         </button>
         <button
           onClick={() => { setDone(false); setClipIndex(0) }}
-          className="px-6 py-3 rounded-lg border font-medium"
+          className="w-full py-3 rounded-lg border font-medium"
           style={{ borderColor: 'var(--color-surface-border)' }}
         >
-          Review Clips
+          Edit Clips
+        </button>
+        <button
+          onClick={() => { setGame(null); setFiles([]); setClipIndex(0); setDone(false) }}
+          className="w-full py-3 rounded-lg font-medium text-white"
+          style={{ background: 'var(--color-amber-600)' }}
+        >
+          Submit
         </button>
       </div>
     )
