@@ -7,7 +7,8 @@ const redis = new Redis({
 })
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.headers.authorization !== process.env.APP_PASSWORD) {
+  const password = req.headers.authorization || req.query.key
+  if (password !== process.env.APP_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 

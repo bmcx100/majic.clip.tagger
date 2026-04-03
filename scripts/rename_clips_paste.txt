@@ -1,4 +1,5 @@
 // ==== CONFIGURATION ====
+var TEST_MODE = true; // Set to false for real runs. When true: renames files but does NOT mark games as processed or move folders out of uploads.
 var API_URL = "https://majic-clip-tagger.vercel.app/api/mappings";
 var API_PASSWORD = "CHANGE_ME"; // Must match APP_PASSWORD in Vercel env vars
 var SOURCE_FOLDER_ID = "1OKbt3ThRACnSCW2jWxzfZcOQ4wHh1lxH";
@@ -48,8 +49,7 @@ function buildResultsPage(results) {
 // ==== MAIN ====
 function renameClips() {
   // Fetch unprocessed games from the web app API
-  var response = UrlFetchApp.fetch(API_URL, {
-    headers: { "authorization": API_PASSWORD },
+  var response = UrlFetchApp.fetch(API_URL + "?key=" + encodeURIComponent(API_PASSWORD), {
     muteHttpExceptions: true
   });
 
@@ -140,7 +140,7 @@ function processGame(game, sourceFolder) {
     renamed + " new, " + alreadyDone + " already done, " + missing + " missing"
   ]);
 
-  if (allDone) {
+  if (allDone && !TEST_MODE) {
     // All files found and renamed - move game folder out of uploads
     var parents = sourceFolder.getParents();
     if (parents.hasNext()) {
@@ -151,14 +151,15 @@ function processGame(game, sourceFolder) {
 
     // Mark game as processed in the API so it won't appear next run
     game.processed = true;
-    UrlFetchApp.fetch(API_URL, {
+    UrlFetchApp.fetch(API_URL + "?key=" + encodeURIComponent(API_PASSWORD), {
       method: "post",
       contentType: "application/json",
-      headers: { "authorization": API_PASSWORD },
       payload: JSON.stringify(game),
       muteHttpExceptions: true
     });
     Logger.log("  Marked as processed in API.");
+  } else if (allDone && TEST_MODE) {
+    Logger.log("  TEST MODE: All files found. Skipping folder move and API update.");
   } else {
     Logger.log("  " + missing + " file(s) missing - will retry next run.");
   }
@@ -183,13 +184,15 @@ function buildFilename(mapping, originalName, ext) {
 
   var line = mapping.line;
   var player = mapping.player;
+  var adjective = mapping.adjective;
   var tag = mapping.tag;
   var custom = mapping.custom;
 
   if (line) parts.push(line + " Line");
   if (player) parts.push(player);
-  if (tag) {
-    parts.push(tag);
+  if (adjective || tag) {
+    var tagParts = [adjective, tag].filter(Boolean).join(" ");
+    parts.push(tagParts);
   } else if (!line && !player) {
     parts.push("Clip");
   }
@@ -197,8 +200,7 @@ function buildFilename(mapping, originalName, ext) {
 
   if (parts.length === 0) parts.push("Clip");
 
-  parts.push(imgId);
-  return parts.join(" ") + ext;
+  return parts.join(" ") + " - " + imgId + ext;
 }
 
 function findFile(folder, name) {
