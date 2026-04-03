@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, fetchMappings, saveMappings } from '../lib/api'
 import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
@@ -23,6 +23,7 @@ export default function Tagger() {
   const [clipIndex, setClipIndex] = useState(0)
   const [done, setDone] = useState(false)
   const [extracting, setExtracting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentFile = files[clipIndex] || null
   const currentFilename = currentFile?.name || ''
@@ -79,9 +80,40 @@ export default function Tagger() {
     setClipIndex(i => i + direction)
   }
 
-  async function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleSelectClick() {
+    // Try File System Access API first - gives real filenames on Chrome Android
+    if ('showOpenFilePicker' in window) {
+      try {
+        const handles = await (window as any).showOpenFilePicker({
+          multiple: true,
+          types: [{
+            description: 'Videos',
+            accept: { 'video/*': ['.mov', '.MOV', '.mp4', '.MP4', '.m4v'] },
+          }],
+        })
+        const selected: File[] = await Promise.all(
+          handles.map((h: any) => h.getFile())
+        )
+        if (selected.length > 0) {
+          await processSelectedFiles(selected)
+          return
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return // User cancelled
+        // API failed - fall through to regular input
+      }
+    }
+    // Fallback: trigger hidden file input (iOS Safari gives correct names)
+    fileInputRef.current?.click()
+  }
+
+  async function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
+    await processSelectedFiles(selected)
+  }
+
+  async function processSelectedFiles(selected: File[]) {
     setExtracting(true)
     try {
       const corrected = await correctFileNames(selected)
@@ -311,16 +343,21 @@ export default function Tagger() {
               </div>
             </div>
           )}
-          <label className="w-full py-3 rounded-lg font-medium text-white text-center cursor-pointer" style={{ background: 'var(--color-amber-600)' }}>
+          <button
+            onClick={handleSelectClick}
+            className="w-full py-3 rounded-lg font-medium text-white text-center"
+            style={{ background: 'var(--color-amber-600)' }}
+          >
             Select Videos
-            <input
-              type="file"
-              accept="video/*"
-              multiple
-              onChange={handleSelectFiles}
-              className="hidden"
-            />
-          </label>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            multiple
+            onChange={handleInputChange}
+            className="hidden"
+          />
           <p className="text-xs text-zinc-400 text-center leading-relaxed">
             {existingClips.length > 0
               ? 'Select new videos to tag, or re-select previous ones to edit their tags. Only loaded videos can be viewed and tagged.'
