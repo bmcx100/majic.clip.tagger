@@ -1,8 +1,19 @@
+import { useRef, useEffect } from 'react'
+
 interface Props {
   src: string | null
 }
 
 export default function VideoPlayer({ src }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (videoRef.current && src) {
+      videoRef.current.src = src
+      videoRef.current.load()
+    }
+  }, [src])
+
   if (!src) {
     return (
       <div className="flex items-center justify-center bg-black/5 rounded-lg" style={{ height: '35dvh' }}>
@@ -13,7 +24,7 @@ export default function VideoPlayer({ src }: Props) {
 
   return (
     <video
-      key={src}
+      ref={videoRef}
       src={src}
       controls
       playsInline

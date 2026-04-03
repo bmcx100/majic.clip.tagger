@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, saveSettings, fetchAllGames, saveMappings, deleteGame } from '../lib/api'
-import { DEFAULT_SETTINGS } from '../lib/defaults'
+import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
 import type { Settings, GameData } from '../lib/types'
 
 type Tab = 'games' | 'roster' | 'lines' | 'adjectives' | 'tags' | 'callup'
@@ -154,11 +154,18 @@ function GamesTab({ password }: { password: string }) {
                   <p className="text-xs text-zinc-400 font-medium">Clip Filenames</p>
                   {clips.map(([name, m]) => {
                     const tagged = m.player || m.line || m.tag
+                    const newName = tagged ? buildFilename(m, name) : null
                     return (
                       <div key={name} className="space-y-0.5">
-                        <span className="text-xs font-medium" style={{ color: tagged ? 'var(--color-success)' : '#A1A1AA' }}>
-                          {tagged ? 'Tagged' : 'Skipped'}
-                        </span>
+                        {newName ? (
+                          <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
+                            {newName}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium" style={{ color: '#A1A1AA' }}>
+                            Skipped
+                          </span>
+                        )}
                         <input
                           value={editMappings[name] || name}
                           onChange={e => setEditMappings(prev => ({ ...prev, [name]: e.target.value }))}
