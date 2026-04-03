@@ -1,7 +1,7 @@
 // ==== CONFIGURATION ====
-var TEST_MODE = true; // Set to false for real runs. When true: renames files but does NOT mark games as processed or move folders out of uploads.
+var TEST_MODE = false;
 var API_URL = "https://majic-clip-tagger.vercel.app/api/mappings";
-var API_PASSWORD = "CHANGE_ME"; // Must match APP_PASSWORD in Vercel env vars
+var API_PASSWORD = "WildCats2026"; // Must match APP_PASSWORD in Vercel env vars
 var SOURCE_FOLDER_ID = "1OKbt3ThRACnSCW2jWxzfZcOQ4wHh1lxH";
 var LOG_SHEET_ID = "1xaKOA5QPDInchMhvCK2BNkLAVPfyzpHm46LaFSQUtV0";
 var LOG_FOLDER_ID = "1SrW4XWRdlsha690dZCZTc1w6tBCbmIoX";

@@ -9,24 +9,38 @@ A two-part system for recording, tagging, and organizing hockey game video clips
 1. **Mary (iPhone 16S)** records 30-50 short clips per game (15s-2min each, 20-120MB per file) during the game
 2. After the game, Mary opens the web app and selects the video files from her camera roll
 3. For each clip she reviews the video and tags it - selecting the player, line (White/Red/Gold), and event type (Goal, Save, Great Play, etc.)
-4. Tags are saved to Vercel KV (Redis). The app also builds a `clip-tag-mappings.json` file mapping original filenames (like `IMG_5528.MOV`) to their tag data
-5. Mary uploads her raw video files to a shared Google Drive folder
-6. **Ryan (Android Pixel, team admin)** runs a Google Apps Script that reads the JSON mapping and renames each video file on Drive from its camera name to a descriptive name like `White Line Adria - Nice Goal IMG_5528.MOV`
+4. Tags are saved to Vercel KV (Redis) automatically as she works
+5. Mary taps Submit, then uploads her raw video files to the shared Google Drive folder
+6. **Ryan (Android Pixel, team admin)** runs a Google Apps Script that fetches submitted games from the Vercel API and renames each video file on Drive from its camera name to a descriptive name like `White Line Adria Nice Goal - IMG_5528.MOV`
 7. The script also creates a game folder and moves all renamed clips into it
 
 ### Critical Dependency: Original Filenames
 
-The entire workflow depends on the JSON mapping keys matching the actual filenames on Google Drive. Mobile browsers often return content-URI names (like `10000428827.mp4`) instead of real camera filenames (like `IMG_5528.MOV`). The app extracts original filenames from the video file's binary metadata to work around this.
+The entire workflow depends on the mapping keys matching the actual filenames on Google Drive. Mobile browsers often return content-URI names (like `10000428827.mp4`) instead of real camera filenames (like `IMG_5528.MOV`). The app uses the File System Access API (`showOpenFilePicker`) on Chrome Android for real filenames, falls back to regular file input on iOS Safari, and has binary metadata extraction as a last resort.
+
+### No JSON File Needed
+
+The Apps Script reads directly from the Vercel API - Mary never downloads or uploads a JSON file. She just tags clips (saved to Redis automatically), taps Submit, and uploads her raw videos to Drive. The script handles the rest.
+
+### Partial Upload Support
+
+If Mary uploads some but not all videos before Ryan runs the script, it processes what's available and retries the missing files on the next run. Games are only marked complete when all files are found.
 
 ## Architecture
 
 1. **Web app** - Vite + React + Tailwind, deployed to Vercel (majic-clip-tagger.vercel.app), uses Vercel KV (Upstash Redis) for tag mapping storage
-2. **Google Apps Script** - runs from Ryan's phone/browser, reads the JSON mapping, renames files on Google Drive, creates game folders, logs to Google Sheet. Script source: `scripts/rename_clips_paste.txt`
+2. **Google Apps Script** - runs from Ryan's phone/browser, fetches submitted games from Vercel API, renames files on Google Drive, creates game folders, logs to Google Sheet. Script source: `scripts/rename_clips_paste.txt`
 
 ## Users
 
 - **Mary (tagger)**: iPhone 16S. Records videos, tags them in the web app, uploads raw files to Google Drive
 - **Ryan (admin)**: Android Pixel. Runs the Google Apps Script to rename files on Drive
+
+## Apps Script Notes
+
+- Auth uses `?key=` query param (not Authorization header - Vercel edge strips it for Google server requests)
+- Must create a new deployment version after every code change (Deploy > Manage deployments > New version)
+- `TEST_MODE` flag at top of script: when true, skips marking games as processed and moving folders
 
 ## Build Plan
 
