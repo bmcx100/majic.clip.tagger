@@ -1,13 +1,14 @@
 interface Props {
   current: number
   total: number
+  totalInGame: number
   onPrev: () => void
   onSkip: () => void
   onNext: () => void
   onDone: () => void
 }
 
-export default function ClipNav({ current, total, onPrev, onSkip, onNext, onDone }: Props) {
+export default function ClipNav({ current, total, totalInGame, onPrev, onSkip, onNext, onDone }: Props) {
   const isLast = current === total - 1
   const progress = total > 0 ? ((current + 1) / total) * 100 : 0
 
@@ -16,7 +17,7 @@ export default function ClipNav({ current, total, onPrev, onSkip, onNext, onDone
       {/* Progress */}
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs" style={{ color: '#A1A1AA' }}>
-          Clip {current + 1} of {total}
+          Clip {current + 1} of {total}{totalInGame > total ? ` (${totalInGame} total)` : ''}
         </span>
         <div className="flex-1 mx-3 h-1.5 rounded-full" style={{ background: 'var(--color-surface-border)' }}>
           <div
