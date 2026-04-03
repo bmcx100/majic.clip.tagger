@@ -166,7 +166,12 @@ export default function Tagger() {
 
   function handleDone() {
     if (!game || !password) return
-    saveMappings(password, game).catch(() => {})
+    const updated = { ...game }
+    if (currentFilename) {
+      updated.mappings = { ...updated.mappings, [currentFilename]: currentMapping }
+    }
+    saveMappings(password, updated).catch(() => {})
+    setGame(updated)
     setDone(true)
   }
 

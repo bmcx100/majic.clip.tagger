@@ -31,12 +31,10 @@ export function buildFilename(
   if (whoParts.length > 0) segments.push(whoParts.join(' '))
   if (tagParts) {
     segments.push(tagParts)
-  } else if (whoParts.length === 0) {
-    segments.push('Clip')
   }
 
   let result = segments.join(' - ')
-  if (mapping.custom) result += ' ' + mapping.custom
+  if (mapping.custom) result += (result ? ' ' : '') + mapping.custom
   if (!result) result = 'Clip'
 
   return result + ' ' + imgId + ext

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../lib/auth'
 import { fetchSettings, saveSettings, fetchAllGames, saveMappings, deleteGame } from '../lib/api'
 import { DEFAULT_SETTINGS, buildFilename } from '../lib/defaults'
@@ -25,6 +25,11 @@ function EditableList({
   placeholder: string
 }) {
   const [newItem, setNewItem] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [overIndex, setOverIndex] = useState<number | null>(null)
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([])
+  const startY = useRef(0)
 
   function add(e: React.FormEvent) {
     e.preventDefault()
@@ -38,25 +43,76 @@ function EditableList({
     onChange(items.filter((_, i) => i !== index))
   }
 
-  function move(index: number, dir: -1 | 1) {
-    const next = [...items]
-    const target = index + dir
-    if (target < 0 || target >= items.length) return
-    ;[next[index], next[target]] = [next[target], next[index]]
-    onChange(next)
-  }
+  const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
+    e.preventDefault()
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    setDragIndex(index)
+    setOverIndex(index)
+    startY.current = e.clientY
+  }, [])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (dragIndex === null) return
+    const y = e.clientY
+    for (let i = 0; i < rowRefs.current.length; i++) {
+      const el = rowRefs.current[i]
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      if (y >= rect.top && y <= rect.bottom) {
+        setOverIndex(i)
+        break
+      }
+    }
+  }, [dragIndex])
+
+  const handlePointerUp = useCallback(() => {
+    if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
+      const next = [...items]
+      const [moved] = next.splice(dragIndex, 1)
+      next.splice(overIndex, 0, moved)
+      onChange(next)
+    }
+    setDragIndex(null)
+    setOverIndex(null)
+  }, [dragIndex, overIndex, items, onChange])
 
   return (
     <div className="space-y-2">
       <div className="space-y-1">
-        {items.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ borderColor: 'var(--color-surface-border)' }}>
-            <span className="flex-1 text-sm">{item}</span>
-            <button onClick={() => move(i, -1)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Up</button>
-            <button onClick={() => move(i, 1)} className="text-xs px-2 py-1 rounded" style={{ color: '#A1A1AA' }}>Dn</button>
-            <button onClick={() => remove(i)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>X</button>
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const isDragging = dragIndex === i
+          const isOver = dragIndex !== null && overIndex === i && dragIndex !== i
+          return (
+            <div
+              key={i}
+              ref={el => { rowRefs.current[i] = el }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors"
+              style={{
+                borderColor: isOver ? 'var(--color-amber-600)' : 'var(--color-surface-border)',
+                opacity: isDragging ? 0.5 : 1,
+              }}
+            >
+              <div
+                onPointerDown={e => handlePointerDown(e, i)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                className="flex items-center cursor-grab active:cursor-grabbing py-1 px-1"
+                style={{ touchAction: 'none', color: '#A1A1AA' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <circle cx="5.5" cy="3.5" r="1.5" />
+                  <circle cx="10.5" cy="3.5" r="1.5" />
+                  <circle cx="5.5" cy="8" r="1.5" />
+                  <circle cx="10.5" cy="8" r="1.5" />
+                  <circle cx="5.5" cy="12.5" r="1.5" />
+                  <circle cx="10.5" cy="12.5" r="1.5" />
+                </svg>
+              </div>
+              <span className="flex-1 text-sm">{item}</span>
+              <button onClick={() => setConfirmDelete(i)} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-error)' }}>X</button>
+            </div>
+          )
+        })}
       </div>
       <form onSubmit={add} className="flex gap-2">
         <input
@@ -70,6 +126,32 @@ function EditableList({
           Add
         </button>
       </form>
+
+      {confirmDelete !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6" onClick={() => setConfirmDelete(null)}>
+          <div className="w-full max-w-xs rounded-xl p-5 space-y-4" style={{ background: 'var(--color-surface-card)' }} onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-medium text-center">
+              Remove <strong>{items[confirmDelete]}</strong>?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-lg border font-medium text-sm"
+                style={{ borderColor: 'var(--color-surface-border)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { remove(confirmDelete); setConfirmDelete(null) }}
+                className="flex-1 py-2.5 rounded-lg font-medium text-sm text-white"
+                style={{ background: 'var(--color-error)' }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -95,8 +177,9 @@ function GamesTab({ password }: { password: string }) {
     setEditingId(game.id)
     setEditDesc(game.description)
     const names: Record<string, string> = {}
-    for (const key of Object.keys(game.mappings)) {
-      names[key] = key
+    for (const [key, mapping] of Object.entries(game.mappings)) {
+      const tagged = mapping.player || mapping.line || mapping.tag || mapping.custom
+      names[key] = tagged ? buildFilename(mapping, key) : key
     }
     setEditMappings(names)
   }
@@ -153,24 +236,21 @@ function GamesTab({ password }: { password: string }) {
                 <div className="space-y-1">
                   <p className="text-xs text-zinc-400 font-medium">Clip Filenames</p>
                   {clips.map(([name, m]) => {
-                    const tagged = m.player || m.line || m.tag
-                    const newName = tagged ? buildFilename(m, name) : null
+                    const tagged = m.player || m.line || m.tag || m.custom
                     return (
                       <div key={name} className="space-y-0.5">
-                        {newName ? (
-                          <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
-                            {newName}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium" style={{ color: '#A1A1AA' }}>
-                            Skipped
-                          </span>
-                        )}
+                        <span className="text-xs font-mono" style={{ color: '#A1A1AA' }}>
+                          {name}
+                        </span>
                         <input
                           value={editMappings[name] || name}
                           onChange={e => setEditMappings(prev => ({ ...prev, [name]: e.target.value }))}
-                          className="w-full px-2 py-1.5 rounded border text-xs font-mono"
-                          style={{ background: '#FFFFFF', borderColor: 'var(--color-surface-border)' }}
+                          className="w-full px-2 py-1.5 rounded border text-xs"
+                          style={{
+                            background: '#FFFFFF',
+                            borderColor: 'var(--color-surface-border)',
+                            color: tagged ? 'var(--color-success)' : '#A1A1AA',
+                          }}
                         />
                       </div>
                     )
