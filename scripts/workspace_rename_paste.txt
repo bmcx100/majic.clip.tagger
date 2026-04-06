@@ -1,0 +1,238 @@
+// ==== CONFIGURATION ====
+var TEST_MODE = false;
+var API_URL = "https://majic-clip-tagger.vercel.app/api/mappings";
+var API_PASSWORD = "WildCats2026";
+var UPLOADS_FOLDER_ID = "0AKCVXxtFwzReUk9PVA"; // Shared Drive uploads folder
+
+// ==== WEB APP ====
+function doGet() {
+  var results = renameClips();
+  var html = buildResultsPage(results);
+  return HtmlService.createHtmlOutput(html)
+    .setTitle("Hockey Clip Renamer");
+}
+
+function buildResultsPage(results) {
+  if (results.length === 0) {
+    return "<html><body style='font-family:sans-serif;padding:24px;'>"
+      + "<h2>Nothing to process</h2>"
+      + "<p>No submitted games found.</p>"
+      + "</body></html>";
+  }
+
+  var rows = "";
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var color = r.complete ? "#22c55e" : "#f59e0b";
+    var status = r.complete
+      ? r.processed + " of " + r.total + " - Done!"
+      : r.processed + " of " + r.total + " - " + r.missing + " missing, will retry next run";
+    rows += "<tr>"
+      + "<td style='padding:8px;border-bottom:1px solid #eee;'>" + r.game + "</td>"
+      + "<td style='padding:8px;border-bottom:1px solid #eee;'><span style='color:" + color + ";font-weight:bold;'>" + status + "</span></td>"
+      + "</tr>";
+  }
+
+  return "<html><body style='font-family:sans-serif;padding:24px;'>"
+    + "<h2>Done!</h2>"
+    + "<table style='border-collapse:collapse;width:100%;'>"
+    + "<tr><th style='padding:8px;text-align:left;border-bottom:2px solid #ddd;'>Game</th>"
+    + "<th style='padding:8px;text-align:left;border-bottom:2px solid #ddd;'>Files</th></tr>"
+    + rows
+    + "</table>"
+    + "<p style='margin-top:16px;color:#888;'>Tap to run again anytime.</p>"
+    + "</body></html>";
+}
+
+// ==== MAIN ====
+function renameClips() {
+  var response = UrlFetchApp.fetch(API_URL + "?key=" + encodeURIComponent(API_PASSWORD), {
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() !== 200) {
+    Logger.log("ERROR: API returned " + response.getResponseCode());
+    return [];
+  }
+
+  var games = JSON.parse(response.getContentText());
+
+  var submitted = [];
+  for (var i = 0; i < games.length; i++) {
+    if (games[i].submitted) submitted.push(games[i]);
+  }
+
+  if (submitted.length === 0) {
+    Logger.log("No submitted games to process.");
+    return [];
+  }
+
+  Logger.log("Found " + submitted.length + " submitted game(s).");
+
+  var uploadsFolder = DriveApp.getFolderById(UPLOADS_FOLDER_ID);
+  var results = [];
+
+  for (var i = 0; i < submitted.length; i++) {
+    results.push(processGame(submitted[i], uploadsFolder));
+  }
+
+  return results;
+}
+
+function processGame(game, uploadsFolder) {
+  var description = game.description;
+  var mappings = game.mappings;
+  var filenames = Object.keys(mappings).sort();
+
+  var gameFolder = null;
+
+  Logger.log("Game: " + description);
+  Logger.log("Clips: " + filenames.length);
+  Logger.log("--------------------------------------------------");
+
+  var renamed = 0;
+  var alreadyDone = 0;
+  var missing = 0;
+  var missingNames = [];
+
+  for (var i = 0; i < filenames.length; i++) {
+    var originalName = filenames[i];
+    var ext = getExtension(originalName);
+    var mapping = mappings[originalName];
+    var newName = mapping.newFilename || buildFilename(mapping, originalName, ext);
+
+    // Check if already done in a previous run
+    if (gameFolder && findFile(gameFolder, newName)) {
+      Logger.log("  ALREADY DONE: " + newName);
+      alreadyDone++;
+      continue;
+    }
+
+    // Find the file in uploads
+    var file = findFile(uploadsFolder, originalName);
+    if (!file) {
+      Logger.log("  MISSING: " + originalName);
+      missingNames.push(originalName);
+      missing++;
+      continue;
+    }
+
+    // Create game folder on first file found
+    if (!gameFolder) {
+      gameFolder = getOrCreateSubfolder(uploadsFolder, description);
+    }
+
+    // Check again now that folder exists
+    if (findFile(gameFolder, newName)) {
+      Logger.log("  ALREADY DONE: " + newName);
+      alreadyDone++;
+      continue;
+    }
+
+    try {
+      file.setName(newName);
+      file.moveTo(gameFolder);
+      Logger.log("  " + originalName + " -> " + newName);
+      renamed++;
+    } catch (e) {
+      Logger.log("  ERROR: " + originalName + ": " + e.message);
+      missingNames.push(originalName + " (failed)");
+      missing++;
+    }
+  }
+
+  var total = filenames.length;
+  var processed = renamed + alreadyDone;
+  var allDone = (missing === 0);
+
+  // Log to spreadsheet in .log folder
+  var logFolder = getOrCreateSubfolder(uploadsFolder, ".log");
+  var logSheet = getOrCreateSpreadsheet(logFolder, "log");
+  logSheet.appendRow([
+    Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+    Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "HH:mm:ss"),
+    description,
+    allDone ? "Complete" : "Partial",
+    processed + " of " + total,
+    renamed + " new, " + alreadyDone + " already done, " + missing + " missing",
+    missingNames.length > 0 ? missingNames.join(", ") : ""
+  ]);
+
+  // Mark as processed when all files done
+  if (allDone && !TEST_MODE) {
+    game.processed = true;
+    UrlFetchApp.fetch(API_URL + "?key=" + encodeURIComponent(API_PASSWORD), {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(game),
+      muteHttpExceptions: true
+    });
+    Logger.log("  Marked as processed in API.");
+  } else if (!allDone) {
+    Logger.log("  " + missing + " file(s) missing - will retry next run.");
+  }
+
+  Logger.log("Done: " + renamed + " renamed, " + alreadyDone + " already done, " + missing + " missing");
+
+  return {
+    game: description,
+    renamed: renamed,
+    processed: processed,
+    missing: missing,
+    total: total,
+    complete: allDone
+  };
+}
+
+function buildFilename(mapping, originalName, ext) {
+  var cameraMatch = originalName.match(/(IMG_\d+|PXL_\d{8}_\d+|VID_\d{8}_\d+)/);
+  var imgId = cameraMatch ? cameraMatch[1] : originalName.replace(/\.[^.]+$/, "");
+
+  var parts = [];
+  var line = mapping.line;
+  var player = mapping.player;
+  var adjective = mapping.adjective;
+  var tag = mapping.tag;
+  var custom = mapping.custom;
+
+  if (line) parts.push(line + " Line");
+  if (player) parts.push(player);
+  if (adjective || tag) {
+    var tagParts = [adjective, tag].filter(Boolean).join(" ");
+    parts.push(tagParts);
+  } else if (!line && !player) {
+    parts.push("Clip");
+  }
+  if (custom) parts.push(custom);
+
+  if (parts.length === 0) parts.push("Clip");
+
+  return parts.join(" ") + " - " + imgId + ext;
+}
+
+function findFile(folder, name) {
+  var files = folder.getFilesByName(name);
+  return files.hasNext() ? files.next() : null;
+}
+
+function getOrCreateSubfolder(parent, name) {
+  var folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(name);
+}
+
+function getOrCreateSpreadsheet(folder, name) {
+  var files = folder.getFilesByName(name);
+  if (files.hasNext()) {
+    return SpreadsheetApp.open(files.next()).getActiveSheet();
+  }
+  var ss = SpreadsheetApp.create(name);
+  var file = DriveApp.getFileById(ss.getId());
+  file.moveTo(folder);
+  return ss.getActiveSheet();
+}
+
+function getExtension(filename) {
+  var dot = filename.lastIndexOf(".");
+  return dot >= 0 ? filename.substring(dot) : "";
+}

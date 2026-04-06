@@ -11,8 +11,9 @@ A two-part system for recording, tagging, and organizing hockey game video clips
 3. For each clip she reviews the video and tags it - selecting the player, line (White/Red/Gold), and event type (Goal, Save, Great Play, etc.)
 4. Tags are saved to Vercel KV (Redis) automatically as she works
 5. Mary taps Submit, then uploads her raw video files to the shared Google Drive folder
-6. **Ryan (Android Pixel, team admin)** runs a Google Apps Script that fetches submitted games from the Vercel API and renames each video file on Drive from its camera name to a descriptive name like `White Line Adria Nice Goal - IMG_5528.MOV`
-7. The script also creates a game folder and moves all renamed clips into it
+6. **Ryan (Android Pixel, team admin)** runs a Google Apps Script that fetches submitted games from the Vercel API and renames each video file in-place on the shared drive to a descriptive name like `White Line Adria Nice Goal - IMG_5528.MOV`
+7. The script creates a game folder on the shared drive and moves all renamed clips into it
+8. Ryan manually moves finished game folders from the shared drive to his personal drive
 
 ### Critical Dependency: Original Filenames
 
@@ -29,7 +30,7 @@ If Mary uploads some but not all videos before Ryan runs the script, it processe
 ## Architecture
 
 1. **Web app** - Vite + React + Tailwind, deployed to Vercel (majic-clip-tagger.vercel.app), uses Vercel KV (Upstash Redis) for tag mapping storage
-2. **Google Apps Script** - runs from Ryan's phone/browser, fetches submitted games from Vercel API, renames files on Google Drive, creates game folders, logs to Google Sheet. Script source: `scripts/rename_clips_paste.txt`
+2. **Google Apps Script** - runs from Ryan's phone/browser, fetches submitted games from Vercel API, renames files in-place on shared drive, creates game folders, logs to `.log` subfolder. Script source: `scripts/workspace_rename_paste.txt`
 
 ## Users
 
