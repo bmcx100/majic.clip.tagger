@@ -309,7 +309,7 @@ export default function Tagger() {
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
-            Upload Videos to Drive
+            Upload Videos to Google Drive
           </a>
         </div>
       </div>
