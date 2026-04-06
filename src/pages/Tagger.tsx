@@ -23,6 +23,7 @@ export default function Tagger() {
   const [clipIndex, setClipIndex] = useState(0)
   const [done, setDone] = useState(false)
   const [extracting, setExtracting] = useState(false)
+  const [creatingGame, setCreatingGame] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentFile = files[clipIndex] || null
@@ -296,8 +297,9 @@ export default function Tagger() {
             currentGameId={null}
             onSelectGame={setGame}
             onNewGame={handleNewGame}
+            onCreatingChange={setCreatingGame}
           />
-          <a
+          {!creatingGame && <a
             href="https://drive.google.com/drive/folders/0AKCVXxtFwzReUk9PVA"
             target="_blank"
             rel="noopener noreferrer"
@@ -310,7 +312,7 @@ export default function Tagger() {
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
             Upload Videos to Google Drive
-          </a>
+          </a>}
         </div>
       </div>
     )

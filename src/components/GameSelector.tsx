@@ -7,10 +7,15 @@ interface Props {
   currentGameId: string | null
   onSelectGame: (game: GameData) => void
   onNewGame: (game: GameData) => void
+  onCreatingChange?: (creating: boolean) => void
 }
 
-export default function GameSelector({ games, currentGameId, onSelectGame, onNewGame }: Props) {
-  const [creating, setCreating] = useState(false)
+export default function GameSelector({ games, currentGameId, onSelectGame, onNewGame, onCreatingChange }: Props) {
+  const [creating, _setCreating] = useState(false)
+  function setCreating(v: boolean) {
+    _setCreating(v)
+    onCreatingChange?.(v)
+  }
   const [description, setDescription] = useState(todayPrefix())
 
   function handleCreate(e: React.FormEvent) {
